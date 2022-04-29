@@ -1,3 +1,4 @@
+import operator
 from collections.abc import (
     Iterable,
     Sized,
@@ -13,6 +14,7 @@ from typing import (
     NoReturn,
     TypeVar,
     Reversible,
+    Sequence,
 )
 
 __all__ = ["ArkoWrapper"]
@@ -52,6 +54,14 @@ class ArkoWrapper(object):
         result, self.__root__ = tee(self.__root__)
         return result
 
+    def _max_gen(self) -> Generator:
+        iter_values = iter(self._tee())
+        for i in range(self._max):
+            try:
+                yield next(iter_values)
+            except StopIteration:
+                break
+
     def __add__(self, other: Any) -> "ArkoWrapper":
         def generate() -> Generator:
             yield from self._tee()
@@ -64,8 +74,35 @@ class ArkoWrapper(object):
 
         return ArkoWrapper(generate())
 
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, ArkoWrapper):
+            if self.__root__ == other.__root__:
+                return True
+            for i in self.zip(other):
+                if i[0] != i[1]:
+                    return False
+            return True
+        elif isinstance(other, Iterable):
+            if self.__root__ == other:
+                return True
+            for i in self.zip(other):
+                if i[0] != i[1]:
+                    return False
+            return True
+        else:
+            return self == [other]
+
     def __radd__(self, other: Any) -> "ArkoWrapper":
-        return self.__add__(other)
+        def generate() -> Generator:
+            if isinstance(other, ArkoWrapper):
+                yield from other._tee()
+            elif isinstance(other, Iterable):
+                yield from tee(other)[0]
+            else:
+                yield other
+            yield from self._tee()
+
+        return ArkoWrapper(generate())
 
     def __copy__(self) -> "ArkoWrapper":
         return ArkoWrapper(self._tee())
@@ -76,33 +113,32 @@ class ArkoWrapper(object):
                 # noinspection PyUnresolvedReferences
                 return self.__root__[index]
             else:
-                if any([
-                    int(index.start) < 0,
-                    int(index.step) < 0,
-                    int(index.stop) < 0
+                if all([
+                    index.start is not None and index.start > 0,
+                    index.step is not None and index.step > 0,
+                    index.stop is not None and index.stop > 0,
                 ]):
-                    raise ValueError(
-                        "Unsupported slicing conversion for iterable")
-                return self.slice(index.start, index.step, index.stop)
-
-        else:
-            try:
-                # noinspection PyUnresolvedReferences
-                return self._tee()[index]
-            except (KeyError, TypeError):
-                if isinstance(index, int):
-                    iter_values = iter(self._tee())
-                    time = 0
-                    while True:
-                        try:
-                            value = next(iter_values)
-                            if time == index:
-                                return value
-                            time += 1
-                        except StopIteration:
-                            raise ValueError(f"Out of range: {index}")
+                    return self.slice(*[i for i in [
+                        index.start, index.step, index.stop
+                    ] if i is not None])
                 else:
-                    raise IndexError("Unsupported indexing for iterable")
+                    return list(self._max_gen()).__getitem__(index)
+        else:
+            if isinstance(index, int):
+                target = self._tee() if index > 0 else self.reverse()
+                index = index if index > 0 else - index - 1
+                iter_values = iter(target)
+                time = 0
+                while True:
+                    try:
+                        value = next(iter_values)
+                        if time == index:
+                            return value
+                        time += 1
+                    except StopIteration:
+                        raise ValueError(f"Out of range: {index}")
+            else:
+                raise IndexError("Unsupported indexing for iterable")
 
     def __index__(self) -> int:
         return self.__len__()
@@ -125,16 +161,13 @@ class ArkoWrapper(object):
         return self.__getitem__(other)
 
     def __mul__(self, times: Union[int, float, str]) -> "ArkoWrapper":
-        if any([
-            isinstance(times, (int, float)),
-            isinstance(times, str) and times.isnumeric()
-        ]):
-            if (times := int(times)) <= 0:
+        try:
+            if (times := int(float(times))) <= 0:
                 raise ValueError(f"'times' cannot be negative: {times}")
             return ArkoWrapper(
                 chain.from_iterable(repeat(tuple(self._tee()), times))
             )
-        else:
+        except (ValueError, TypeError):
             raise TypeError(f"Unsupported Type: {type(times)}.")
 
     def __neg__(self) -> "ArkoWrapper":
@@ -142,10 +175,22 @@ class ArkoWrapper(object):
 
     def __reversed__(self) -> "ArkoWrapper":
         if isinstance(self.__root__, Reversible):
-            # noinspection PyTypeChecker
-            return ArkoWrapper(reversed(self._tee()))
+            from copy import deepcopy as copy
+            return ArkoWrapper(reversed(copy(self.__root__)))
         else:
-            raise TypeError(f"The iter '{self.__root__}' is not 'Reversible.'")
+            try:
+                return ArkoWrapper(reversed(list(self._max_gen())))
+            except (ValueError, TypeError):
+                raise TypeError(
+                    f"The iter '{self.__root__}' is not 'Reversible.'")
+
+    def __rshift__(self, target: Any) -> Any:
+        if isinstance(target, type) or callable(target):
+            return self.collect(target)
+        elif isinstance(target, Sequence):
+            return self.collect(type(target))
+        else:
+            raise ValueError(f"Unsupported value or type: '{target}'")
 
     @property
     def root(self) -> Iterable[Any]:
@@ -166,7 +211,8 @@ class ArkoWrapper(object):
         self._max = max_num
 
     def accumulate(
-            self, func: Callable, *, initial: Optional[int] = None
+            self, func: Optional[Callable[[...], Any]] = operator.add, *,
+            initial: Optional[int] = None
     ) -> "ArkoWrapper":
         return ArkoWrapper(accumulate(self._tee(), func, initial=initial))
 
@@ -174,7 +220,9 @@ class ArkoWrapper(object):
         return ArkoWrapper(chain(self._tee(), *iterables))
 
     def collect(
-            self, func: Callable[[Iterable, ...], T], *args, **kwargs
+            self,
+            func: Optional[Callable[[Iterable, ...], T]] = list,
+            *args, **kwargs
     ) -> T:
         return func(self._tee(), *args, **kwargs)
 
