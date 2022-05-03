@@ -8,14 +8,13 @@ from setuptools import (
     setup,
 )
 
-# Package meta-data.
 NAME = 'arko-wrapper'
 DESCRIPTION = 'Make your Python iterators more magical.'
 URL = 'https://github.com/ArkoClub/ArkoWrapper'
 EMAIL = 'arko.space.cc@gmail.com'
 AUTHOR = 'Arko'
-REQUIRES_PYTHON = '>=3.10'
-VERSION = '0.0.1'
+REQUIRES_PYTHON = '>=3.9'
+VERSION = '0.0.2'
 
 REQUIRED = []
 EXTRAS = {}
@@ -28,17 +27,9 @@ try:
 except FileNotFoundError:
     long_description = DESCRIPTION
 
-about = {}
-if not VERSION:
-    project_slug = NAME.lower().replace("-", "_").replace(" ", "_")
-    with open(os.path.join(here, project_slug, '__version__.py')) as f:
-        exec(f.read(), about)
-else:
-    about['__version__'] = VERSION
-
 setup(
     name=NAME,
-    version=about['__version__'],
+    version=VERSION,
     description=DESCRIPTION,
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -57,7 +48,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: Implementation :: CPython',
     ]
 )
