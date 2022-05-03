@@ -2,7 +2,7 @@
 
 ----
 
-[![Python 3.9](https://img.shields.io/badge/Python-3.9-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.9](https://img.shields.io/badge/Python-3.9_|_3.10-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/downloads/release/python-390/)
 [![GitHub file size in bytes](https://img.shields.io/github/size/ArkoClub/ArkoWrapper/arkowrapper/_wrapper.py?style=flat-square&logo=hack-the-box&logoColor=white&label=Size)](https://github.com/ArkoClub/ArkoWrapper)
 [![PyPI](https://img.shields.io/pypi/v/arko-wrapper?color=%233775A9&label=PyPI&logo=pypi&logoColor=white&style=flat-square)](https://pypi.org/project/arko-wrapper/)
 [![Codacy Badge](https://img.shields.io/codacy/grade/78563bf9a5304851a73684c34a30e2b3?label=Code%20Quality&logo=Codacy&style=flat-square)](https://www.codacy.com/gh/ArkoClub/ArkoWrapper/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ArkoClub/ArkoWrapper&amp;utm_campaign=Badge_Grade)
