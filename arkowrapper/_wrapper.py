@@ -1,4 +1,5 @@
 import operator
+import sys
 from collections.abc import (
     Iterable,
     Sized,
@@ -417,5 +418,7 @@ class ArkoWrapper(object):
     def unwrap(self) -> Iterable:
         return self._tee()
 
-    def zip(self, *iterables, strict: bool = False) -> "ArkoWrapper":
-        return ArkoWrapper(zip(self._tee(), *iterables, strict=strict))
+    def zip(self, *iterables, strict: Optional[bool] = False) -> "ArkoWrapper":
+        if sys.version_info >= (3, 10):
+            return ArkoWrapper(zip(self._tee(), *iterables, strict=strict))
+        return ArkoWrapper(zip(self._tee(), *iterables))
