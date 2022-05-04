@@ -6,7 +6,22 @@ from collections.abc import (
     Callable,
     Generator,
 )
-from itertools import *
+from itertools import (
+    chain,
+    tee,
+    repeat,
+    accumulate,
+    combinations,
+    combinations_with_replacement,
+    cycle,
+    dropwhile,
+    filterfalse,
+    zip_longest,
+    islice,
+    compress,
+    groupby,
+    starmap,
+)
 from typing import (
     Any,
     overload,
@@ -57,7 +72,7 @@ class ArkoWrapper(object):
 
     def _max_gen(self) -> Generator:
         iter_values = iter(self._tee())
-        for i in range(self._max):
+        for _ in range(self._max):
             try:
                 yield next(iter_values)
             except StopIteration:
@@ -75,25 +90,9 @@ class ArkoWrapper(object):
 
         return ArkoWrapper(generate())
 
-    def __eq__(self, other: Any) -> bool:
-        if isinstance(other, ArkoWrapper):
-            if self.__root__ == other.__root__:
-                return True
-            for i in self.zip(other):
-                if i[0] != i[1]:
-                    return False
-            return True
-        elif isinstance(other, Iterable):
-            if self.__root__ == other:
-                return True
-            for i in self.zip(other):
-                if i[0] != i[1]:
-                    return False
-            return True
-        else:
-            return self == [other]
-
     def __radd__(self, other: Any) -> "ArkoWrapper":
+        """radd魔法方法"""
+
         def generate() -> Generator:
             if isinstance(other, ArkoWrapper):
                 yield from other._tee()
@@ -105,6 +104,19 @@ class ArkoWrapper(object):
 
         return ArkoWrapper(generate())
 
+    def __eq__(self, other: Any) -> bool:
+        if any([
+            isinstance(other, ArkoWrapper) and self.__root__ == other.__root__,
+            isinstance(other, Iterable) and self.__root__ == other
+        ]):
+            return True
+        if isinstance(other, (ArkoWrapper, Iterable)):
+            for i in self.zip(other):
+                if i[0] != i[1]:
+                    return False
+            return True
+        return self == [other]
+
     def __copy__(self) -> "ArkoWrapper":
         return ArkoWrapper(self._tee())
 
@@ -113,33 +125,30 @@ class ArkoWrapper(object):
             if '__getitem__' in dir(self.__root__):
                 # noinspection PyUnresolvedReferences
                 return self.__root__[index]
+            if (
+                    all([index.start, index.step, index.stop]) and
+                    index.start * index.step * index.stop > 0
+            ):
+                return self.slice(
+                    *filter(None, [index.start, index.step, index.stop])
+                )
+            return list(self._max_gen()).__getitem__(index)
+        try:
+            if (index := int(index)) > 0:
+                target = self._tee()
             else:
-                if all([
-                    index.start is not None and index.start > 0,
-                    index.step is not None and index.step > 0,
-                    index.stop is not None and index.stop > 0,
-                ]):
-                    return self.slice(*[i for i in [
-                        index.start, index.step, index.stop
-                    ] if i is not None])
-                else:
-                    return list(self._max_gen()).__getitem__(index)
-        else:
-            if isinstance(index, int):
-                target = self._tee() if index > 0 else self.reverse()
-                index = index if index > 0 else - index - 1
-                iter_values = iter(target)
-                time = 0
-                while True:
-                    try:
-                        value = next(iter_values)
-                        if time == index:
-                            return value
-                        time += 1
-                    except StopIteration:
-                        raise ValueError(f"Out of range: {index}")
-            else:
-                raise IndexError("Unsupported indexing for iterable")
+                target = self.reverse()
+                index = - index - 1
+            iter_values = iter(target)
+            time = -1
+            while value := next(iter_values):
+                try:
+                    if (time := time + 1) == index:
+                        return value
+                except StopIteration:
+                    raise ValueError(f"Out of range: {index}")
+        except Exception:
+            raise IndexError("Unsupported indexing for iterable")
 
     def __index__(self) -> int:
         return self.__len__()
@@ -216,6 +225,24 @@ class ArkoWrapper(object):
             initial: Optional[int] = None
     ) -> "ArkoWrapper":
         return ArkoWrapper(accumulate(self._tee(), func, initial=initial))
+
+    def all(self) -> bool:
+        iter_values = iter(self._tee())
+        try:
+            while bool(next(iter_values)):
+                ...
+            return False
+        except StopIteration:
+            return True
+
+    def any(self) -> bool:
+        iter_values = iter(self._tee())
+        try:
+            while not bool(next(iter_values)):
+                ...
+            return True
+        except StopIteration:
+            return False
 
     def chain(self, *iterables: Iterable) -> "ArkoWrapper":
         return ArkoWrapper(chain(self._tee(), *iterables))
