@@ -3,10 +3,7 @@
 import io
 import os
 
-from setuptools import (
-    find_packages,
-    setup,
-)
+from setuptools import setup
 
 NAME = 'arko-wrapper'
 DESCRIPTION = 'Make your Python iterators more magical.'
@@ -14,7 +11,7 @@ URL = 'https://github.com/ArkoClub/ArkoWrapper'
 EMAIL = 'arko.space.cc@gmail.com'
 AUTHOR = 'Arko'
 REQUIRES_PYTHON = '>=3.9'
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 
 REQUIRED = []
 EXTRAS = {}
@@ -27,6 +24,7 @@ try:
 except FileNotFoundError:
     long_description = DESCRIPTION
 
+# noinspection SpellCheckingInspection
 setup(
     name=NAME,
     version=VERSION,
@@ -37,9 +35,7 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    py_modules=find_packages(
-        exclude=["tests", "*.tests", "*.tests.*", "tests.*"]
-    ),
+    py_modules=['arkowrapper'],
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
