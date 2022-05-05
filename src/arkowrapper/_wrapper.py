@@ -399,7 +399,7 @@ class ArkoWrapper(object):
     def slice(self, *args) -> "ArkoWrapper":
         return ArkoWrapper(islice(self._tee(), *args))
 
-    def search(self, sub: Sized) -> Iterable[int]:
+    def search(self, sub: Sized) -> Generator[int]:
         target = self.tee()
         sub = ArkoWrapper(sub)
         partial: list[int] = [0]

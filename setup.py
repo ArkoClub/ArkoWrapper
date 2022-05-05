@@ -3,41 +3,32 @@
 import io
 import os
 
-from setuptools import setup
+from setuptools import (
+    find_packages,
+    setup,
+)
 
-NAME = 'arko-wrapper'
-DESCRIPTION = 'Make your Python iterators more magical.'
-URL = 'https://github.com/ArkoClub/ArkoWrapper'
-EMAIL = 'arko.space.cc@gmail.com'
-AUTHOR = 'Arko'
-REQUIRES_PYTHON = '>=3.9'
-VERSION = '0.0.3'
-
-REQUIRED = []
-EXTRAS = {}
+packages = find_packages('src')
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-try:
-    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
-        long_description = '\n' + f.read()
-except FileNotFoundError:
-    long_description = DESCRIPTION
+with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = '\n' + f.read()
 
-# noinspection SpellCheckingInspection
 setup(
-    name=NAME,
-    version=VERSION,
-    description=DESCRIPTION,
+    name='arko-wrapper',
+    description="给你的Python迭代器加上魔法",
+    version='0.0.4',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    author=AUTHOR,
-    author_email=EMAIL,
-    python_requires=REQUIRES_PYTHON,
-    url=URL,
-    py_modules=['arkowrapper'],
-    install_requires=REQUIRED,
-    extras_require=EXTRAS,
+    author='Arko',
+    author_email='arko.space.cc@gmail.com',
+    python_requires='>=3.9',
+    url='https://github.com/ArkoClub/ArkoWrapper',
+    packages=packages,
+    package_dir={"": "src"},
+    install_requires=[],
+    extras_require={},
     include_package_data=True,
     license='MIT',
     classifiers=[
