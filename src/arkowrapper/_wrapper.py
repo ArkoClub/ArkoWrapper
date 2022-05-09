@@ -404,8 +404,8 @@ class ArkoWrapper:
             iter_values = iter(self._tee())
             is_sequence = isinstance(target, Sequence)
             removed = False
-            for _ in range(self.max_operate_time):
-                try:
+            try:
+                for _ in range(self.max_operate_time):
                     value = next(iter_values)
                     if (
                             (is_sequence and value in target)
@@ -415,8 +415,8 @@ class ArkoWrapper:
                         continue
                     else:
                         yield value
-                except StopIteration:
-                    ...
+            except StopIteration:
+                ...
 
         return ArkoWrapper(generator())
 
