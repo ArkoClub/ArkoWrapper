@@ -1,3 +1,7 @@
+"""给你的 Python 迭代器加上魔法
+
+一个 Python 迭代器的包装器，使其具有与Rust中的其他方法类似的风格，以提高迭代器操作的一致性和代码的可读性。
+"""
 import operator
 import sys
 from collections.abc import (
@@ -38,7 +42,13 @@ __all__ = ["ArkoWrapper"]
 T = TypeVar("T")
 
 
-class ArkoWrapper(object):
+class ArkoWrapper:
+    """一个 Python 迭代器的包装器
+
+    Attributes:
+        iterable: 需要被 Wrap 的 Object。 可以是一个迭代器或者其它任何Object。
+        max_operate_times: Wrapper 操作次数的上限。用于限制无限的迭代器。
+    """
     __root__: Iterable[Any]
     _max: int
 
@@ -67,10 +77,12 @@ class ArkoWrapper(object):
         return f"<ArkoWrapper:{self.__root__}>"
 
     def _tee(self) -> Iterable:
+        """将已有迭代器分裂一次"""
         result, self.__root__ = tee(self.__root__)
         return result
 
-    def _max_gen(self) -> Generator:
+    def _max_gen(self) -> Generator[Any]:
+        """将自己的迭代器现在某个范围内"""
         iter_values = iter(self._tee())
         for _ in range(self._max):
             try:
@@ -79,6 +91,15 @@ class ArkoWrapper(object):
                 break
 
     def __add__(self, other: Any) -> "ArkoWrapper":
+        """实现加法操作。返回两个实列组成的新的迭代器的ArkoWrapper
+
+        Args:
+            other(Any): 相加的实列。
+
+        Returns:
+            ArkoWrapper: 返回两个实列组成的新的迭代器的ArkoWrapper
+        """
+
         def generate() -> Generator:
             yield from self._tee()
             if isinstance(other, ArkoWrapper):
@@ -91,7 +112,7 @@ class ArkoWrapper(object):
         return ArkoWrapper(generate())
 
     def __radd__(self, other: Any) -> "ArkoWrapper":
-        """radd魔法方法"""
+        """实现反射加法操作。"""
 
         def generate() -> Generator:
             if isinstance(other, ArkoWrapper):
@@ -105,6 +126,7 @@ class ArkoWrapper(object):
         return ArkoWrapper(generate())
 
     def __eq__(self, other: Any) -> bool:
+        """定义操作符(==)的行为。"""
         if any([
             isinstance(other, ArkoWrapper) and self.__root__ == other.__root__,
             isinstance(other, Iterable) and self.__root__ == other
@@ -118,9 +140,11 @@ class ArkoWrapper(object):
         return self == [other]
 
     def __copy__(self) -> "ArkoWrapper":
+        """定义对类的实例使用 copy.copy() 时的行为"""
         return ArkoWrapper(self._tee())
 
     def __getitem__(self, index: Any) -> Any:
+        """定义对容器中某一项使用 self[key] 的方式进行读取操作时的行为"""
         if isinstance(index, slice):
             if '__getitem__' in dir(self.__root__):
                 # noinspection PyUnresolvedReferences
@@ -151,9 +175,11 @@ class ArkoWrapper(object):
             raise IndexError("Unsupported indexing for iterable")
 
     def __index__(self) -> int:
+        """实现当对象用于切片表达式时到一个整数的类型转换。"""
         return self.__len__()
 
     def __iter__(self) -> Any:
+        """返回当前的迭代器。"""
         return self._tee().__iter__()
 
     def __len__(self) -> int:
@@ -437,7 +463,7 @@ class ArkoWrapper(object):
             if target[i] == sub[j]:
                 j += 1
             if j == len(sub):
-                yield i - (j - 1)
+                yield i - j + 1
                 j = partial[j - 1]
 
     def sort(
