@@ -57,7 +57,7 @@ class ArkoWrapper:
     # noinspection PyTypeChecker
     def __init__(
             self, iterable: Optional[Any] = None, *,
-            max_num: Optional[int] = 2 ** 20
+            max_operate_times: Optional[int] = sys.maxsize
     ) -> NoReturn:
         if isinstance(iterable, Iterable):
             self.__root__ = iterable
@@ -66,9 +66,9 @@ class ArkoWrapper:
         else:
             self.__root__ = [iterable]
 
-        if max_num <= 0:
-            raise ValueError(f"Requires a positive number: {max_num}")
-        self._max = max_num
+        if max_operate_times <= 0:
+            raise ValueError(f"Requires a positive number: {max_operate_times}")
+        self._max = max_operate_times
 
     def __str__(self) -> str:
         return str(self.__root__)
@@ -237,14 +237,14 @@ class ArkoWrapper:
         return self.__len__()
 
     @property
-    def max(self) -> int:
+    def max_operate_time(self) -> int:
         return self._max
 
-    @max.setter
-    def max(self, max_num: int):
-        if max_num <= 0:
-            raise ValueError(f"Requires a positive number: {max_num}")
-        self._max = max_num
+    @max_operate_time.setter
+    def max_operate_time(self, max_operate_time: int):
+        if max_operate_time <= 0:
+            raise ValueError(f"Requires a positive number: {max_operate_time}")
+        self._max = max_operate_time
 
     def accumulate(
             self, func: Optional[Callable[[...], Any]] = operator.add, *,
@@ -299,7 +299,7 @@ class ArkoWrapper:
         def generator() -> Generator[tuple[int, Any]]:
             iter_values = iter(self._tee())
             index = 0
-            while True:
+            for _ in range(self.max_operate_time):
                 try:
                     value = next(iter_values)
                     yield index, value
@@ -379,7 +379,7 @@ class ArkoWrapper:
                     next(iter_values)
                     index -= 1
                 index = start
-                while True:
+                for _ in range(self.max_operate_time):
                     next(iter_values)
                     yield index
                     index += 1
@@ -393,7 +393,7 @@ class ArkoWrapper:
             iter_values = iter(self._tee())
             is_sequence = isinstance(target, Sequence)
             removed = False
-            while True:
+            for _ in range(self.max_operate_time):
                 try:
                     value = next(iter_values)
                     if (
@@ -406,6 +406,7 @@ class ArkoWrapper:
                         yield value
                 except StopIteration:
                     ...
+
         return ArkoWrapper(generator())
 
     def repeat(
