@@ -362,6 +362,26 @@ class ArkoWrapper(object):
 
         return ArkoWrapper(generator())
 
+    def remove(self, target: Any) -> "ArkoWrapper":
+        def generator():
+            iter_values = iter(self._tee())
+            is_sequence = isinstance(target, Sequence)
+            removed = False
+            while True:
+                try:
+                    value = next(iter_values)
+                    if (
+                            (is_sequence and value in target)
+                            or
+                            (not removed and value == target)
+                    ):
+                        continue
+                    else:
+                        yield value
+                except StopIteration:
+                    ...
+        return ArkoWrapper(generator())
+
     def repeat(
             self, times: Optional[Union[int, float, str]] = None
     ) -> "ArkoWrapper":
