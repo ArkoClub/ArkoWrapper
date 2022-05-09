@@ -338,6 +338,17 @@ class ArkoWrapper:
         iter_values = [iter(self._tee())] * n
         return ArkoWrapper(zip_longest(*iter_values, fillvalue=fill_value))
 
+    def join(self, sep: str = ', ') -> str:
+        iter_values = iter(self._tee())
+        result = ''
+        try:
+            for _ in range(self.max_operate_time):
+                value = next(iter_values)
+                result += f"{sep}{value}"
+        except StopIteration:
+            ...
+        return result
+
     def map(self, func: Callable) -> "ArkoWrapper":
         return ArkoWrapper(map(func, self._tee()))
 
