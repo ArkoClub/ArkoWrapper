@@ -84,11 +84,11 @@ class ArkoWrapper:
     def _max_gen(self) -> Generator[Any]:
         """将自己的迭代器现在某个范围内"""
         iter_values = iter(self._tee())
-        for _ in range(self._max):
-            try:
+        try:
+            for _ in range(self._max):
                 yield next(iter_values)
-            except StopIteration:
-                break
+        except StopIteration:
+            ...
 
     def __add__(self, other: Any) -> "ArkoWrapper":
         """实现加法操作。返回两个实列组成的新的迭代器的ArkoWrapper
@@ -149,14 +149,12 @@ class ArkoWrapper:
             if '__getitem__' in dir(self.__root__):
                 # noinspection PyUnresolvedReferences
                 return self.__root__[index]
-            if (
-                    all([index.start, index.step, index.stop]) and
-                    index.start * index.step * index.stop > 0
-            ):
+            try:
                 return self.slice(
                     *filter(None, [index.start, index.step, index.stop])
                 )
-            return list(self._max_gen()).__getitem__(index)
+            except ValueError:
+                return list(self._max_gen()).__getitem__(index)
         try:
             if (index := int(index)) > 0:
                 target = self._tee()
