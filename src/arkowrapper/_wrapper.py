@@ -181,6 +181,7 @@ class ArkoWrapper:
         return self._tee().__iter__()
 
     def __len__(self) -> int:
+        """返回当前的迭代器的长度，如果无限的话，则回返回最大操作次数。"""
         if isinstance(self.__root__, Sized):
             return len(list(self._tee()))
         else:
@@ -192,9 +193,11 @@ class ArkoWrapper:
             return length
 
     def __matmul__(self, other: Any) -> Any:
+        """定义操作符(@)的行为。"""
         return self.__getitem__(other)
 
     def __mul__(self, times: Union[int, float, str]) -> "ArkoWrapper":
+        """实现乘法操作"""
         try:
             if (times := int(float(times))) <= 0:
                 raise ValueError(f"'times' cannot be negative: {times}")
@@ -205,9 +208,11 @@ class ArkoWrapper:
             raise TypeError(f"Unsupported Type: {type(times)}.")
 
     def __neg__(self) -> "ArkoWrapper":
+        """定义取负操作"""
         return self.__reversed__()
 
     def __reversed__(self) -> "ArkoWrapper":
+        """定义反转"""
         if isinstance(self.__root__, Reversible):
             from copy import deepcopy as copy
             return ArkoWrapper(reversed(copy(self.__root__)))
@@ -219,6 +224,7 @@ class ArkoWrapper:
                     f"The iter '{self.__root__}' is not 'Reversible.'")
 
     def __rshift__(self, target: Any) -> Any:
+        """实现右移位运算符 >>"""
         if isinstance(target, type) or callable(target):
             return self.collect(target)
         elif isinstance(target, Sequence):
@@ -236,6 +242,7 @@ class ArkoWrapper:
 
     @property
     def max_operate_time(self) -> int:
+        """最大操作次数，防止无线递归"""
         return self._max
 
     @max_operate_time.setter
@@ -251,6 +258,7 @@ class ArkoWrapper:
         return ArkoWrapper(accumulate(self._tee(), func, initial=initial))
 
     def all(self) -> bool:
+        """如果所有元素均为真值（或root为空）则返回 True"""
         iter_values = iter(self._tee())
         try:
             while bool(next(iter_values)):
@@ -260,6 +268,7 @@ class ArkoWrapper:
             return True
 
     def any(self) -> bool:
+        """如果任一元素为真值则返回 True。 若root为空，返回 False"""
         iter_values = iter(self._tee())
         try:
             while not bool(next(iter_values)):
@@ -269,6 +278,7 @@ class ArkoWrapper:
             return False
 
     def chain(self, *iterables: Iterable) -> "ArkoWrapper":
+        """创建一个迭代器，它首先返回第一个可迭代对象中所有元素，接着返回下一个可迭代对象中所有元素，直到耗尽所有可迭代对象中的元素。"""
         return ArkoWrapper(chain(self._tee(), *iterables))
 
     def collect(
@@ -276,6 +286,7 @@ class ArkoWrapper:
             func: Optional[Callable[[Iterable, ...], T]] = list,
             *args, **kwargs
     ) -> T:
+        """以整个迭代器作为参数，于给定的 func 函数中进行运算"""
         return func(self._tee(), *args, **kwargs)
 
     def combinations(self, r: int = 2) -> "ArkoWrapper":
