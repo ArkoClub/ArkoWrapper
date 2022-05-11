@@ -28,7 +28,6 @@ from itertools import (
 )
 from typing import (
     Any,
-    Generic,
     overload,
     Optional,
     Union,
@@ -40,27 +39,24 @@ from typing import (
 
 __all__ = ["ArkoWrapper"]
 
-M = TypeVar("M")
 T = TypeVar("T")
-E = TypeVar("E")
-C = TypeVar("C")
 
 
-class ArkoWrapper(Generic[T]):
+class ArkoWrapper:
     """一个 Python 迭代器的包装器
 
     Attributes:
         iterable: 需要被 Wrap 的 Object。 可以是一个迭代器或者其它任何Object。
         max_operate_times: Wrapper 操作次数的上限。用于限制无限的迭代器。
     """
-    __root__: Iterable[T]
+    __root__: Iterable[Any]
     _max: int
 
     __slots__ = '__root__', '_max'
 
     # noinspection PyTypeChecker
     def __init__(
-            self, iterable: Optional[Union[Iterable[T], T]] = None, *,
+            self, iterable: Optional[Any] = None, *,
             max_operate_times: Optional[int] = sys.maxsize
     ) -> NoReturn:
         if isinstance(iterable, Iterable):
@@ -78,14 +74,14 @@ class ArkoWrapper(Generic[T]):
         return str(self.__root__)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}:{self.__root__}>"
+        return f"<ArkoWrapper:{self.__root__}>"
 
-    def _tee(self) -> Iterable[T]:
+    def _tee(self) -> Iterable:
         """将已有迭代器分裂一次"""
         result, self.__root__ = tee(self.__root__)
         return result
 
-    def _max_gen(self) -> Generator[T]:
+    def _max_gen(self) -> Generator[Any]:
         """将自己的迭代器现在某个范围内"""
         iter_values = iter(self._tee())
         try:
@@ -94,7 +90,7 @@ class ArkoWrapper(Generic[T]):
         except StopIteration:
             ...
 
-    def __add__(self: M, other: E) -> "M[Union[T, E]]":
+    def __add__(self, other: Any) -> "ArkoWrapper":
         """实现加法操作。返回两个实列组成的新的迭代器的ArkoWrapper
 
         Args:
@@ -113,9 +109,9 @@ class ArkoWrapper(Generic[T]):
             else:
                 yield other
 
-        return self.__class__(generate())
+        return ArkoWrapper(generate())
 
-    def __radd__(self: M, other: E) -> "M[Union[T, E]]":
+    def __radd__(self, other: Any) -> "ArkoWrapper":
         """实现反射加法操作。"""
 
         def generate() -> Generator:
@@ -127,7 +123,7 @@ class ArkoWrapper(Generic[T]):
                 yield other
             yield from self._tee()
 
-        return self.__class__(generate())
+        return ArkoWrapper(generate())
 
     def __eq__(self, other: Any) -> bool:
         """定义操作符(==)的行为。"""
@@ -143,11 +139,11 @@ class ArkoWrapper(Generic[T]):
             return True
         return self == [other]
 
-    def __copy__(self: M) -> "M":
+    def __copy__(self) -> "ArkoWrapper":
         """定义对类的实例使用 copy.copy() 时的行为"""
-        return self.__class__(self._tee())
+        return ArkoWrapper(self._tee())
 
-    def __getitem__(self, index: Any) -> T:
+    def __getitem__(self, index: Any) -> Any:
         """定义对容器中某一项使用 self[key] 的方式进行读取操作时的行为"""
         if isinstance(index, slice):
             if '__getitem__' in dir(self.__root__):
@@ -180,7 +176,7 @@ class ArkoWrapper(Generic[T]):
         """实现当对象用于切片表达式时到一个整数的类型转换。"""
         return self.__len__()
 
-    def __iter__(self) -> T:
+    def __iter__(self) -> Any:
         """返回当前的迭代器。"""
         return self._tee().__iter__()
 
@@ -196,49 +192,48 @@ class ArkoWrapper(Generic[T]):
                     return self._max
             return length
 
-    def __matmul__(self, other: Any) -> T:
+    def __matmul__(self, other: Any) -> Any:
         """定义操作符(@)的行为。"""
         return self.__getitem__(other)
 
-    def __mul__(self: M, times: Union[int, float, str]) -> "M":
+    def __mul__(self, times: Union[int, float, str]) -> "ArkoWrapper":
         """实现乘法操作"""
         try:
             if (times := int(float(times))) <= 0:
                 raise ValueError(f"'times' cannot be negative: {times}")
-            return self.__class__(
+            return ArkoWrapper(
                 chain.from_iterable(repeat(tuple(self._tee()), times))
             )
         except (ValueError, TypeError):
             raise TypeError(f"Unsupported Type: {type(times)}.")
 
-    def __neg__(self: M) -> "M":
+    def __neg__(self) -> "ArkoWrapper":
         """定义取负操作"""
         return self.__reversed__()
 
-    def __reversed__(self: M) -> "M":
+    def __reversed__(self) -> "ArkoWrapper":
         """定义反转"""
         if isinstance(self.__root__, Reversible):
             from copy import deepcopy as copy
-            return self.__class__(reversed(copy(self.__root__)))
+            return ArkoWrapper(reversed(copy(self.__root__)))
         else:
             try:
-                return self.__class__(reversed(list(self._max_gen())))
+                return ArkoWrapper(reversed(list(self._max_gen())))
             except (ValueError, TypeError):
                 raise TypeError(
                     f"The iter '{self.__root__}' is not 'Reversible.'")
 
-    def __rshift__(self: M, target: Any) -> C:
+    def __rshift__(self, target: Any) -> Any:
         """实现右移位运算符 >>"""
         if isinstance(target, type) or callable(target):
-            result: C = self.collect(target)
+            return self.collect(target)
         elif isinstance(target, Sequence):
-            result: C = self.collect(type(target))
+            return self.collect(type(target))
         else:
             raise ValueError(f"Unsupported value or type: '{target}'")
-        return result
 
     @property
-    def root(self) -> Iterable[T]:
+    def root(self) -> Iterable[Any]:
         return self.__root__
 
     @property
@@ -257,10 +252,10 @@ class ArkoWrapper(Generic[T]):
         self._max = max_operate_time
 
     def accumulate(
-            self: M, func: Optional[Callable[[T, T], C]] = operator.add, *,
+            self, func: Optional[Callable[[...], Any]] = operator.add, *,
             initial: Optional[int] = None
-    ) -> "M[C]":
-        return self.__class__(accumulate(self._tee(), func, initial=initial))
+    ) -> "ArkoWrapper":
+        return ArkoWrapper(accumulate(self._tee(), func, initial=initial))
 
     def all(self) -> bool:
         """如果所有元素均为真值（或root为空）则返回 True"""
@@ -282,35 +277,35 @@ class ArkoWrapper(Generic[T]):
         except StopIteration:
             return False
 
-    def chain(self: M, *iterables: Iterable[E]) -> "M[Union[T, E]]":
+    def chain(self, *iterables: Iterable) -> "ArkoWrapper":
         """创建一个迭代器，它首先返回第一个可迭代对象中所有元素，接着返回下一个可迭代对象中所有元素，直到耗尽所有可迭代对象中的元素。"""
-        return self.__class__(chain(self._tee(), *iterables))
+        return ArkoWrapper(chain(self._tee(), *iterables))
 
     def collect(
             self,
-            func: Optional[Callable[[Iterable[T], ...], C]] = list,
+            func: Optional[Callable[[Iterable, ...], T]] = list,
             *args, **kwargs
-    ) -> C:
+    ) -> T:
         """以整个迭代器作为参数，于给定的 func 函数中进行运算"""
         return func(self._tee(), *args, **kwargs)
 
-    def combinations(self: M, r: int = 2) -> "M[combinations[tuple[T, T]]]":
-        return self.__class__(combinations(self._tee(), r))
+    def combinations(self, r: int = 2) -> "ArkoWrapper":
+        return ArkoWrapper(combinations(self._tee(), r))
 
-    def combinations_with_replacement(self: M, r: int = 2) -> "M":
-        return self.__class__(combinations_with_replacement(self._tee(), r))
+    def combinations_with_replacement(self, r: int = 2) -> "ArkoWrapper":
+        return ArkoWrapper(combinations_with_replacement(self._tee(), r))
 
-    def compress(self: M, selectors: Iterable) -> "M":
-        return self.__class__(compress(self._tee(), selectors))
+    def compress(self, selectors: Iterable) -> "ArkoWrapper":
+        return ArkoWrapper(compress(self._tee(), selectors))
 
-    def cycle(self: M) -> "M":
-        return self.__class__(cycle(self._tee()))
+    def cycle(self) -> "ArkoWrapper":
+        return ArkoWrapper(cycle(self._tee()))
 
-    def drop_while(self: M, func: Callable) -> "M":
-        return self.__class__(dropwhile(func, self._tee()))
+    def drop_while(self, func: Callable) -> "ArkoWrapper":
+        return ArkoWrapper(dropwhile(func, self._tee()))
 
-    def enumerate(self: M) -> "M[tuple[int, T]]":
-        def generator() -> Generator[tuple[int, T]]:
+    def enumerate(self) -> "ArkoWrapper":
+        def generator() -> Generator[tuple[int, Any]]:
             iter_values = iter(self._tee())
             index = 0
             for _ in range(self.max_operate_time):
@@ -321,13 +316,13 @@ class ArkoWrapper(Generic[T]):
                 except StopIteration:
                     break
 
-        return self.__class__(generator())
+        return ArkoWrapper(generator())
 
-    def filter(self: M, func: Callable[[T], Any]) -> "M[T]":
-        return self.__class__(filter(func, self._tee()))
+    def filter(self, func: Callable[[...], Any]) -> "ArkoWrapper":
+        return ArkoWrapper(filter(func, self._tee()))
 
-    def filter_false(self: M, func: Callable[[T], Any]) -> "M[T]":
-        return self.__class__(filterfalse(func, self._tee()))
+    def filter_false(self, func: Callable[[...], Any]) -> "ArkoWrapper":
+        return ArkoWrapper(filterfalse(func, self._tee()))
 
     def find(
             self, target: Any, *, full: Optional[bool] = False
@@ -338,7 +333,7 @@ class ArkoWrapper(Generic[T]):
                 if not full:
                     break
 
-    def flat(self: M, depth: int = -1) -> "M":
+    def flat(self, depth: int = -1) -> "ArkoWrapper":
         def generate(iterator: Iterable, times: int) -> Generator:
             for i in iterator:
                 if isinstance(i, Iterable) and not isinstance(i, str) and times:
@@ -346,11 +341,11 @@ class ArkoWrapper(Generic[T]):
                 else:
                     yield i
 
-        return self.__class__(generate(self._tee(), depth))
+        return ArkoWrapper(generate(self._tee(), depth))
 
-    def group(self: M, n: int, fill_value: Any = None) -> "M":
+    def group(self, n: int, fill_value: Any = None) -> "ArkoWrapper":
         iter_values = [iter(self._tee())] * n
-        return self.__class__(zip_longest(*iter_values, fillvalue=fill_value))
+        return ArkoWrapper(zip_longest(*iter_values, fillvalue=fill_value))
 
     def join(self, sep: str = ', ') -> str:
         iter_values = iter(self._tee())
@@ -363,14 +358,13 @@ class ArkoWrapper(Generic[T]):
             ...
         return result
 
-    def map(self: M, func: Callable) -> "M":
-        return self.__class__(map(func, self._tee()))
+    def map(self, func: Callable) -> "ArkoWrapper":
+        return ArkoWrapper(map(func, self._tee()))
 
     def mutate(
-            self: M, func: Callable[[Iterable[T], ...], Iterable] = list,
-            *args, **kwargs
-    ) -> "M":
-        return self.__class__(func(self._tee(), *args, **kwargs))
+            self, func: Callable[..., Iterable] = list, *args, **kwargs
+    ) -> "ArkoWrapper":
+        return ArkoWrapper(func(self._tee(), *args, **kwargs))
 
     def print(
             self,
@@ -396,7 +390,7 @@ class ArkoWrapper(Generic[T]):
             print_func(len(end) * '\b')
         return self
 
-    def range(self: M, start: Optional[int] = 0) -> "M":
+    def range(self, start: Optional[int] = 0) -> "ArkoWrapper":
         def generator() -> Generator[int]:
             iter_values = iter(self._tee())
             index = start
@@ -412,7 +406,7 @@ class ArkoWrapper(Generic[T]):
             except StopIteration:
                 return
 
-        return self.__class__(generator())
+        return ArkoWrapper(generator())
 
     def remove(self, target: Any) -> "ArkoWrapper":
         def generator():
@@ -436,10 +430,10 @@ class ArkoWrapper(Generic[T]):
         return ArkoWrapper(generator())
 
     def repeat(
-            self: M, times: Optional[Union[int, float, str]] = None
-    ) -> "M[T]":
+            self, times: Optional[Union[int, float, str]] = None
+    ) -> "ArkoWrapper":
         if times is None:
-            return self.__class__(
+            return ArkoWrapper(
                 chain.from_iterable(
                     repeat(tuple(self._tee()), self._max + 1)
                 )
@@ -450,27 +444,27 @@ class ArkoWrapper(Generic[T]):
         ]):
             if (time := int(times)) <= 0:
                 raise ValueError(f"'times' cannot be negative: {times}")
-            return self.__class__(
+            return ArkoWrapper(
                 chain.from_iterable(repeat(tuple(self._tee()), time + 1))
             )
         else:
             raise TypeError(f"Unsupported Type: {type(times)}.")
 
-    def reverse(self: M) -> "M":
+    def reverse(self) -> "ArkoWrapper":
         return self.__reversed__()
 
     @overload
-    def slice(self: M, stop: int) -> "M":
+    def slice(self, stop: int) -> "ArkoWrapper":
         ...
 
     @overload
     def slice(
-            self: M, start: int, stop: int, step: Optional[int] = 1
-    ) -> "M":
+            self, start: int, stop: int, step: Optional[int] = 1
+    ) -> "ArkoWrapper":
         ...
 
-    def slice(self: M, *args) -> "M":
-        return self.__class__(islice(self._tee(), *args))
+    def slice(self, *args) -> "ArkoWrapper":
+        return ArkoWrapper(islice(self._tee(), *args))
 
     def search(self, sub: Sized) -> Generator[int]:
         target = self.tee()
@@ -494,33 +488,31 @@ class ArkoWrapper(Generic[T]):
                 j = partial[j - 1]
 
     def sort(
-            self: M, key: Optional[Callable] = None, reverse: bool = False
-    ) -> "M":
-        return self.__class__(sorted(self._tee(), key=key, reverse=reverse))
+            self, key: Optional[Callable] = None, reverse: bool = False
+    ) -> "ArkoWrapper":
+        return ArkoWrapper(sorted(self._tee(), key=key, reverse=reverse))
 
-    def starmap(self: M, func: Callable) -> "M":
-        return self.__class__(starmap(func, self._tee()))
+    def starmap(self, func: Callable) -> "ArkoWrapper":
+        return ArkoWrapper(starmap(func, self._tee()))
 
     def tee(
-            self: M, n: Optional[int] = None
-    ) -> Union["M", Generator["M"]]:
+            self, n: Optional[int] = None
+    ) -> Union["ArkoWrapper", Generator["ArkoWrapper"]]:
         if n is None:
-            return self.__class__(self._tee())
-        return (self.__class__(item) for item in tee(self.__root__, n))
+            return ArkoWrapper(self._tee())
+        return (ArkoWrapper(item) for item in tee(self.__root__, n))
 
-    def unique(self: M) -> "M":
+    def unique(self) -> "ArkoWrapper":
         def generator() -> Generator:
             for k, g in groupby(self._tee()):
                 yield k
 
-        return self.__class__(generator())
+        return ArkoWrapper(generator())
 
-    def unwrap(self) -> Iterable[T]:
+    def unwrap(self) -> Iterable:
         return self._tee()
 
-    def zip(
-            self: M, *iterables: Iterable[E], strict: Optional[bool] = False
-    ) -> "M[Union[T, E]]":
+    def zip(self, *iterables, strict: Optional[bool] = False) -> "ArkoWrapper":
         if sys.version_info >= (3, 10):
-            return self.__class__(zip(self._tee(), *iterables, strict=strict))
-        return self.__class__(zip(self._tee(), *iterables))
+            return ArkoWrapper(zip(self._tee(), *iterables, strict=strict))
+        return ArkoWrapper(zip(self._tee(), *iterables))
