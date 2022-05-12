@@ -158,7 +158,7 @@ class ArkoWrapper(Generic[T]):
                 return self.__root__[index]
             try:
                 return self.slice(
-                    *filter(None, [index.start, index.step, index.stop])
+                    *filter(None, [index.start, index.stop, index.step])
                 )
             except ValueError:
                 return list(self._max_gen()).__getitem__(index)
@@ -501,8 +501,8 @@ class ArkoWrapper(Generic[T]):
     ) -> "M":
         ...
 
-    def slice(self: M, *args) -> "M":
-        return self.__class__(islice(self._tee(), *args))
+    def slice(self: M, *args, **kwargs) -> "M":
+        return self.__class__(islice(self._tee(), *args, **kwargs))
 
     def search(self, sub: Sized) -> Generator[int]:
         target = self.tee()
