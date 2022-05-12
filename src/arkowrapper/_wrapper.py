@@ -323,6 +323,35 @@ class ArkoWrapper(Generic[T]):
 
         return self.__class__(generator())
 
+    def fill(
+            self: M,
+            num: int,
+            factory: Union[C, Callable[[], C]] = None
+    ) -> "M[Union[T, C]]":
+        if num > self._max:
+            raise ValueError("'num' cannot exceed the maximum number of '_max'")
+        elif num < 0:
+            raise ValueError("'num' must be a positive number.")
+
+        def generator() -> Generator:
+            yield from self._tee()  # typed: T
+            for _ in range(num):
+                yield factory() if callable(factory) else factory  # typed: C
+
+        return self.__class__(generator())
+
+    def fill_to(
+            self: M,
+            num: int,
+            factory: Union[C, Callable[[], C]] = None
+    ) -> "M[Union[T, C]]":
+        if num < self.length:
+            raise ValueError("'num' cannot be less than its own length.")
+        if num == (length := self.length):
+            return self
+        else:
+            return self.fill(num - length, factory=factory)
+
     def filter(self: M, func: Callable[[T], Any]) -> "M[T]":
         return self.__class__(filter(func, self._tee()))
 
