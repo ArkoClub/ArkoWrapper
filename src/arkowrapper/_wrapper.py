@@ -44,6 +44,7 @@ M = TypeVar("M")
 T = TypeVar("T")
 E = TypeVar("E")
 C = TypeVar("C")
+default_max = sys.maxsize
 
 
 class ArkoWrapper(Generic[T]):
@@ -61,7 +62,7 @@ class ArkoWrapper(Generic[T]):
     # noinspection PyTypeChecker
     def __init__(
             self, iterable: Optional[Union[Iterable[T], T]] = None, *,
-            max_operate_times: Optional[int] = sys.maxsize
+            max_operate_times: Optional[int] = default_max
     ) -> NoReturn:
         if isinstance(iterable, Iterable):
             self.__root__ = iterable
@@ -72,6 +73,8 @@ class ArkoWrapper(Generic[T]):
 
         if max_operate_times <= 0:
             raise ValueError(f"Requires a positive number: {max_operate_times}")
+        elif max_operate_times > default_max:
+            raise ValueError(f"'max_operate_times' cannot exceed {default_max}")
         self._max = max_operate_times
 
     def __str__(self) -> str:
