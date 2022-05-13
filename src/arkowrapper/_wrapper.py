@@ -556,3 +556,12 @@ class ArkoWrapper(Generic[T]):
         if sys.version_info >= (3, 10):
             return self.__class__(zip(self._tee(), *iterables, strict=strict))
         return self.__class__(zip(self._tee(), *iterables))
+
+    def zip_longest(
+            self: M, *iterables: Iterable[E], fill_value: Optional[C] = None
+    ) -> "M[Union[T, E, C]]":
+        return self.__class__(
+            zip_longest(
+                self.tee(), *ArkoWrapper(iterables).tee(), fillvalue=fill_value
+            )
+        )
