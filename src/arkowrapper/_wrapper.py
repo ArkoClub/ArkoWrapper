@@ -144,6 +144,9 @@ class ArkoWrapper(Generic[T]):
         return self == [other]
 
     def __copy__(self: M) -> "M":
+        return self.__class__(self.__root__)
+
+    def __deepcopy__(self: M, *args) -> "M":
         """定义对类的实例使用 copy.copy() 时的行为"""
         return self.__class__(self._tee())
 
@@ -175,6 +178,9 @@ class ArkoWrapper(Generic[T]):
         except Exception:
             raise IndexError("Unsupported indexing for iterable")
 
+    def __hash__(self) -> int:
+        return hash(self._tee())
+
     def __index__(self) -> int:
         """实现当对象用于切片表达式时到一个整数的类型转换。"""
         return self.__len__()
@@ -187,6 +193,16 @@ class ArkoWrapper(Generic[T]):
 
     def __len__(self) -> int:
         """返回当前的迭代器的长度，如果无限的话，则回返回最大操作次数。"""
+        if (
+                isinstance(self.__root__, Hashable)
+                and
+                (
+                        (hash_value := hash(self.__root__))
+                        in
+                        self.__class__._len_cache
+                )
+        ):
+            return self.__class__._len_cache[hash_value]
         if isinstance(self.__root__, Sized):
             length = len(list(self._tee()))
         else:
@@ -205,6 +221,12 @@ class ArkoWrapper(Generic[T]):
 
     def __mul__(self: M, times: Union[int, float, str]) -> "M":
         """实现乘法操作"""
+        if (
+                isinstance(times, SupportsIndex)
+                and
+                (times := int(float(times))) <= 0
+        ):
+            raise ValueError(f"'times' cannot be negative: {times}")
         try:
             return self.__class__(
                 chain.from_iterable(repeat(tuple(self._tee()), int(times)))
