@@ -558,6 +558,16 @@ class ArkoWrapper(Generic[T]):
     def starmap(self: M, func: Callable) -> "M":
         return self.__class__(starmap(func, self._tee()))
 
+    def take_while(
+            self, func: Union[Any, Callable[[T], bool]] = True
+    ) -> "M[T]":
+        if callable(func):
+            return self.__class__(takewhile(func, self._tee()))
+        elif bool(func):
+            return self.__deepcopy__()
+        else:
+            return self.__class__()
+
     def tee(
             self: M, n: Optional[int] = None
     ) -> Union["M", Iterable["M"]]:
