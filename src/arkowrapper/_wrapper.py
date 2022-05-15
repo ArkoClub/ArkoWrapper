@@ -17,12 +17,12 @@ from itertools import (
     islice,
     repeat,
     starmap,
+    takewhile,
     tee,
     zip_longest,
 )
 from typing import (
     Any,
-    SupportsIndex,
     Callable,
     ClassVar,
     Generator,
@@ -35,6 +35,7 @@ from typing import (
     Reversible,
     Sequence,
     Sized,
+    SupportsIndex,
     TypeVar,
     Union,
     overload,
@@ -42,7 +43,7 @@ from typing import (
 
 __all__ = ["ArkoWrapper"]
 
-M = TypeVar("M")
+M = TypeVar("M", bound="ArkoWrapper")
 T = TypeVar("T")
 E = TypeVar("E")
 C = TypeVar("C")
@@ -244,11 +245,7 @@ class ArkoWrapper(Generic[T]):
             from copy import deepcopy as copy
             return self.__class__(reversed(copy(self.__root__)))
         else:
-            try:
-                return self.__class__(reversed(list(self._max_gen())))
-            except (ValueError, TypeError):
-                raise TypeError(
-                    f"The iter '{self.__root__}' is not 'Reversible.'")
+            return self.__class__(reversed(list(self._max_gen())))
 
     def __rshift__(
             self: M, target: Union[Callable[[Iterable[T], ...], C], Sequence]
@@ -257,9 +254,10 @@ class ArkoWrapper(Generic[T]):
         if isinstance(target, type) or callable(target):
             result: C = self.collect(target)
         elif isinstance(target, Sequence):
-            result: C = self.collect(type(target))
+            # noinspection PyArgumentList,PyProtectedMember
+            result: C = target.__class__(self.__radd__(target)._tee())
         else:
-            raise ValueError(f"Unsupported value or type: '{target}'")
+            raise TypeError(f"Unsupported value or type: '{target}'")
         return result
 
     @property
