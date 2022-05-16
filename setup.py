@@ -15,10 +15,11 @@ here = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = '\n' + f.read()
 
+# noinspection SpellCheckingInspection
 setup(
     name='arko-wrapper',
     description="给你的Python迭代器加上魔法",
-    version='0.0.9',
+    version='0.0.10',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Arko',
@@ -28,7 +29,9 @@ setup(
     packages=packages,
     package_dir={"": "src"},
     install_requires=[],
-    extras_require={},
+    extras_require={
+        'test': ['pytest', 'pytest-rerunfailures'],
+    },
     include_package_data=True,
     license='MIT',
     classifiers=[
