@@ -19,12 +19,12 @@ with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='arko-wrapper',
     description="给你的Python迭代器加上魔法",
-    version='0.0.11',
+    version='0.1.0',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Arko',
     author_email='arko.space.cc@gmail.com',
-    python_requires='>=3.9',
+    python_requires='>=3.8',
     url='https://github.com/ArkoClub/ArkoWrapper',
     packages=packages,
     package_dir={"": "src"},
@@ -38,7 +38,9 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: Implementation :: CPython',
     ]
 )
