@@ -164,7 +164,7 @@ class ArkoWrapper(Generic[T]):
             except ValueError:
                 return self.__class__(list(self._max_gen()).__getitem__(index))
         try:
-            if (index := int(index)) > 0:
+            if (index := int(index)) >= 0:
                 target = self._tee()
             else:
                 target = self.reverse()
