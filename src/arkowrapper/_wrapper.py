@@ -112,7 +112,7 @@ class ArkoWrapper(Generic[T]):
 
         def generate() -> Iterator[Union[T, E]]:
             yield from self._tee()
-            if isinstance(other, Iterable):
+            if not isinstance(other, str) and isinstance(other, Iterable):
                 yield from tee(other)[0]
             else:
                 yield other
@@ -123,7 +123,7 @@ class ArkoWrapper(Generic[T]):
         """实现反射加法操作。"""
 
         def generate() -> Iterator[Union[T, E]]:
-            if isinstance(other, Iterable):
+            if not isinstance(other, str) and isinstance(other, Iterable):
                 yield from tee(other)[0]
             else:
                 yield other
