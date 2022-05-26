@@ -426,8 +426,16 @@ class ArkoWrapper(Generic[T]):
             ...
         return result
 
-    def map(self: Wrapper, func: Callable) -> "Wrapper":
-        return self.__class__(map(func, self._tee()))
+    def map(
+            self: Wrapper, func: Callable, start: Optional[int] = 0
+    ) -> "Wrapper":
+        def generator() -> Iterator[T]:
+            iter_values = iter(self._tee())
+            for _ in range(start):
+                next(iter_values)
+            yield from iter_values
+
+        return self.__class__(map(func, generator()))
 
     def mutate(
             self: Wrapper, func: Callable[[Iterable[T], ...], Iterable] = list,
@@ -593,7 +601,7 @@ class ArkoWrapper(Generic[T]):
             self: Wrapper, *iterables: Iterable[E],
             strict: Optional[bool] = False
     ) -> Wrapper:
-        if sys.version_info >= (3, 10):  # pragma: no cover
+        if sys.version_info >= (3, 10):
             return self.__class__(zip(self._tee(), *iterables, strict=strict))
         return self.__class__(zip(self._tee(), *iterables))
 
