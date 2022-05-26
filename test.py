@@ -84,6 +84,7 @@ class TestOperator:  # pragma: no cover
         assert list(wrapper_a + data_b) == list(data)
         assert list(0 + wrapper) == list(range(10))
         assert list(wrapper + 10) == list(range(1, 11))
+        assert wrapper.append(10) == range(1, 11)
 
     @pytest.mark.flaky(reruns=5)
     def test_equal(self):
@@ -125,6 +126,7 @@ class TestOperator:  # pragma: no cover
         assert wrapper[5] == data[5]
         assert wrapper @ 5 == data[5]
         assert wrapper[-3] == data[-3]
+        assert wrapper[7:] == data[7:]
         assert wrapper[:5] == data[:5]
         assert wrapper[:-2] == data[:-2]
         assert ArkoWrapper(wrapper)[:5] == data[:5]
@@ -173,6 +175,17 @@ class TestOperator:  # pragma: no cover
 
         new_wrapper = NewWrapper(wrapper)
         new_wrapper.filter_false(lambda: True).filter(lambda: False)
+
+    def test_map(self):
+        assert wrapper.map(lambda x: x * 2, 0) == map(lambda x: x * 2, wrapper)
+        assert (
+                wrapper.map(lambda x: x * 2, 1)
+                ==
+                map(lambda x: x * 2, wrapper[1:])
+        )
+
+    def test_extend(self):
+        assert wrapper.extend(range(10, 15)) == range(1, 15)
 
 
 if __name__ == '__main__':  # pragma: no cover
