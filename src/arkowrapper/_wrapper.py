@@ -113,7 +113,7 @@ class ArkoWrapper(Generic[T]):
         def generate() -> Iterator[Union[T, E]]:
             yield from self._tee()
             if not isinstance(other, str) and isinstance(other, Iterable):
-                yield from tee(other)[0]
+                yield from other  # todo:复制生成器
             else:
                 yield other
 
@@ -124,7 +124,7 @@ class ArkoWrapper(Generic[T]):
 
         def generate() -> Iterator[Union[T, E]]:
             if not isinstance(other, str) and isinstance(other, Iterable):
-                yield from tee(other)[0]
+                yield from other  # todo:复制生成器
             else:
                 yield other
             yield from self._tee()
@@ -306,6 +306,10 @@ class ArkoWrapper(Generic[T]):
             return True
         except StopIteration:
             return False
+
+    def append(self, obj: Any) -> Wrapper:
+        """将对象附加到 ArkoWrapper 的末尾。"""
+        return self.__add__(obj)
 
     def chain(self: Wrapper, *iterables: Iterable[E]) -> Wrapper:
         """创建一个迭代器，它首先返回第一个可迭代对象中所有元素，接着返回下一个可迭代对象中所有元素，直到耗尽所有可迭代对象中的元素。"""
