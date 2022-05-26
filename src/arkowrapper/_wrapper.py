@@ -307,7 +307,7 @@ class ArkoWrapper(Generic[T]):
         except StopIteration:
             return False
 
-    def append(self, obj: Any) -> Wrapper:
+    def append(self: Wrapper, obj: Any) -> Wrapper:
         """将对象附加到 ArkoWrapper 的末尾。"""
         return self.__add__(obj)
 
@@ -354,6 +354,16 @@ class ArkoWrapper(Generic[T]):
                     index += 1
                 except StopIteration:
                     break
+
+        return self.__class__(generator())
+
+    def extend(self: Wrapper, iterable: Iterable[E]) -> Wrapper:
+        if not isinstance(iterable, Iterable):
+            raise TypeError(f"{type(iterable)} object is not iterable")
+
+        def generator() -> Iterator[Union[T, E]]:
+            yield from self._tee()
+            yield from iterable
 
         return self.__class__(generator())
 
