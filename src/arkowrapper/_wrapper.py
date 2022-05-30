@@ -309,7 +309,8 @@ class ArkoWrapper(Generic[T]):
 
     def append(self: Wrapper, obj: Any) -> Wrapper:
         """将对象附加到 ArkoWrapper 的末尾。"""
-        return self.__add__(obj)
+        self.__root__, result = self.__add__(obj)._tee()
+        return self.__class__(result)
 
     def chain(self: Wrapper, *iterables: Iterable[E]) -> Wrapper:
         """创建一个迭代器，它首先返回第一个可迭代对象中所有元素，接着返回下一个可迭代对象中所有元素，直到耗尽所有可迭代对象中的元素。"""
