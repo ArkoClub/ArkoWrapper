@@ -4,6 +4,7 @@
 """
 import operator
 import sys
+from copy import deepcopy
 from itertools import (
     accumulate,
     chain,
@@ -464,7 +465,9 @@ class ArkoWrapper(Generic[T]):
             self: Wrapper, func: Callable[[Iterable[T], ...], Iterable] = list,
             *args, **kwargs
     ) -> "Wrapper":
-        return self.__class__(func(self._tee(), *args, **kwargs))
+        """改变 __root__ 的类型。"""
+        self.__root__ = func(self.__root__, *args, **kwargs)
+        return self
 
     def print(
             self,
