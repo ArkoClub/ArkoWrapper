@@ -1,3 +1,4 @@
+from copy import deepcopy
 from random import randint
 
 import pytest
@@ -84,7 +85,8 @@ class TestOperator:  # pragma: no cover
         assert list(wrapper_a + data_b) == list(data)
         assert list(0 + wrapper) == list(range(10))
         assert list(wrapper + 10) == list(range(1, 11))
-        assert wrapper.append(10) == range(1, 11)
+        new_wrapper = deepcopy(wrapper)
+        assert new_wrapper.append(10) == range(1, 11)
 
     @pytest.mark.flaky(reruns=5)
     def test_equal(self):
