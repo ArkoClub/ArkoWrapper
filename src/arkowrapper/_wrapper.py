@@ -307,9 +307,22 @@ class ArkoWrapper(Generic[T]):
         except StopIteration:
             return False
 
-    def append(self: Wrapper, obj: Any) -> Wrapper:
-        """将对象附加到 ArkoWrapper 的末尾。"""
-        return self.__add__(obj)
+    def append(self: Wrapper, obj: E) -> Wrapper:
+        """将对象附加到 ArkoWrapper 的末尾。注：此方法会修改本身的 __root__"""
+
+        def clean() -> list[Union[E, T]]:
+            temp = []
+            iter_values = iter(self._tee())
+            try:
+                for _ in range(self._max):
+                    temp.append(next(iter_values))
+            except StopIteration:
+                temp.append(obj)
+                return temp
+
+        result = self.__class__()
+        self.__root__, result.__root__ = tee(clean())
+        return self
 
     def chain(self: Wrapper, *iterables: Iterable[E]) -> Wrapper:
         """创建一个迭代器，它首先返回第一个可迭代对象中所有元素，接着返回下一个可迭代对象中所有元素，直到耗尽所有可迭代对象中的元素。"""
