@@ -32,6 +32,7 @@ from typing import (
     Iterator,
     NoReturn,
     Optional,
+    Protocol,
     Reversible,
     Sequence,
     Sized,
@@ -39,6 +40,7 @@ from typing import (
     TypeVar,
     Union,
     overload,
+    runtime_checkable,
 )
 
 __all__ = ["ArkoWrapper"]
@@ -48,6 +50,15 @@ T = TypeVar("T")
 E = TypeVar("E")
 C = TypeVar("C")
 default_max = sys.maxsize
+
+
+@runtime_checkable
+class Searchable(Protocol[T]):
+    def __iter__(self) -> Iterable[T]: ...
+
+    def __getitem__(self, item) -> T: ...
+
+    def __len__(self) -> int: ...
 
 
 class ArkoWrapper(Generic[T]):
@@ -572,7 +583,11 @@ class ArkoWrapper(Generic[T]):
     def slice(self: Wrapper, *args, **kwargs) -> "Wrapper":
         return self.__class__(islice(self._tee(), *args, *kwargs.values()))
 
-    def search(self, sub: Sized) -> Generator:
+    def search(
+            self,
+            sub: Searchable[E], *,
+            func: Callable[[T, E], bool] = operator.eq
+    ) -> Generator:
         target = self.tee()
         sub: ArkoWrapper = ArkoWrapper(sub)
         partial: list[int] = [0]
@@ -587,7 +602,7 @@ class ArkoWrapper(Generic[T]):
         for i in target.range():
             while j > 0 and target[i] != sub[j]:
                 j = partial[j - 1]
-            if target[i] == sub[j]:
+            if func(target[i], sub[j]):
                 j += 1
             if j == len(sub):
                 yield i - j + 1
