@@ -4,7 +4,6 @@
 """
 import operator
 import sys
-from copy import deepcopy
 from itertools import (
     accumulate,
     chain,
@@ -179,6 +178,12 @@ class ArkoWrapper(Generic[T]):
             raise ValueError(f"Out of range: {index}")
         except Exception:
             raise IndexError("Unsupported indexing for iterable")
+
+    def __contains__(self, item: Any) -> bool:
+        for elem in self._tee():
+            if elem == item:
+                return True
+        return False
 
     def __hash__(self) -> int:
         return hash(self._tee())
