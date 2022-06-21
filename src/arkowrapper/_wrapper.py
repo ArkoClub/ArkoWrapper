@@ -643,13 +643,15 @@ class ArkoWrapper(Generic[T]):
     def unwrap(self) -> Iterable[T]:
         return self._tee()
 
-    def zip(
-            self: Wrapper, *iterables: Iterable[E],
-            strict: Optional[bool] = False
-    ) -> Wrapper:
-        if sys.version_info >= (3, 10):
+    if sys.version_info >= (3, 10):
+        def zip(
+                self: Wrapper, *iterables: Iterable[E],
+                strict: Optional[bool] = False
+        ) -> Wrapper:
             return self.__class__(zip(self._tee(), *iterables, strict=strict))
-        return self.__class__(zip(self._tee(), *iterables))
+    else:
+        def zip(self: Wrapper, *iterables: Iterable[E]) -> Wrapper:
+            return self.__class__(zip(self._tee(), *iterables))
 
     def zip_longest(
             self: Wrapper, *iterables: Iterable[E],
