@@ -373,6 +373,9 @@ class ArkoWrapper(Generic[T]):
     def drop_while(self: Wrapper, func: Callable) -> "Wrapper":
         return self.__class__(dropwhile(func, self._tee()))
 
+    def empty(self) -> bool:
+        return self.__len__() == 0
+
     def enumerate(self: Wrapper) -> Wrapper:
         def generator() -> Iterator[tuple[int, T]]:
             iter_values = iter(self._tee())
