@@ -643,8 +643,10 @@ class ArkoWrapper(Generic[T]):
 
         return self.__class__(generator())
 
-    def unwrap(self) -> Iterable[T]:
-        return self._tee()
+    def unwrap(
+            self, func: Optional[Callable[[Iterable[T]], E]] = None
+    ) -> Union[Iterable[T], E]:
+        return self._tee() if func is None else func(self._tee())
 
     if sys.version_info >= (3, 10):
         def zip(
