@@ -646,7 +646,15 @@ class ArkoWrapper(Generic[T]):
     def unwrap(
             self, func: Optional[Callable[[Iterable[T]], E]] = None
     ) -> Union[Iterable[T], E]:
-        return self._tee() if func is None else func(self._tee())
+        if func is None:
+            # noinspection PyBroadException
+            try:
+                # noinspection PyArgumentList
+                return self.__root__.__class__(self._tee())
+            except Exception:
+                return self._tee()
+        else:
+            return func(self._tee())
 
     if sys.version_info >= (3, 10):
         def zip(
