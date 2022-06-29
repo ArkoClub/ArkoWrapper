@@ -636,9 +636,9 @@ class ArkoWrapper(Generic[T]):
             return self.__class__(self._tee())
         return (self.__class__(item) for item in tee(self.__root__, n))
 
-    def unique(self: Wrapper) -> "Wrapper":
+    def unique(self: Wrapper, key: Optional[Callable] = None) -> "Wrapper":
         def generator() -> Iterator[T]:
-            for k, g in groupby(self._tee()):
+            for k, g in groupby(sorted(self._tee(), key=key)):
                 yield k
 
         return self.__class__(generator())
