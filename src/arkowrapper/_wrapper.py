@@ -458,6 +458,63 @@ class ArkoWrapper(Generic[T]):
         iter_values = [iter(self._tee())] * n
         return self.__class__(zip_longest(*iter_values, fillvalue=fill_value))
 
+    # noinspection SpellCheckingInspection
+    @overload
+    def groupby(self, key: Callable[[T], C] = None) -> Wrapper:
+        pass
+
+    # noinspection SpellCheckingInspection
+    @overload
+    def groupby(
+            self: Wrapper,
+            start: Callable[[T], bool],
+            stop: Callable[[T], bool],
+            group_type: Callable[[list], Iterable] = list,
+            retain: bool = False
+    ) -> "Wrapper":
+        pass
+
+    # noinspection SpellCheckingInspection
+    def groupby(
+            self: Wrapper, *args, **kwargs
+    ) -> Wrapper:  # [tuple[T, Iterable[T]]]
+        if len(args) + len(kwargs) <= 1:
+            return self.__class__(groupby(self._tee(), *args, **kwargs))
+        else:
+            def make_group(
+                    start: Callable[[T], bool],
+                    stop: Callable[[T], bool],
+                    group_type: Callable[[list], Iterable] = list,
+                    retain: bool = False,
+                    contain_head: bool = False,
+                    contain_tail: bool = False
+            ) -> "Wrapper":
+                def generator() -> Iterator[Iterable[T]]:
+                    elem = []
+                    other = []
+                    flag = False
+                    for item in self._tee():
+                        if start(item) and not flag:
+                            elem.append(item) if contain_head else ...
+                            flag = True
+                        elif stop(item) and flag:
+                            elem.append(item) if contain_tail else ...
+                            yield group_type(elem)
+                            elem.clear()
+                            flag = False
+                        elif flag:
+                            elem.append(item)
+                        elif retain:
+                            other.append(item)
+                    if elem:
+                        yield group_type(elem)
+                    if other:
+                        yield group_type(other)
+
+                return self.__class__(generator())
+
+            return make_group(*args, **kwargs)
+
     def join(self, sep: str = ', ') -> str:
         iter_values = iter(self._tee())
         result = ''
