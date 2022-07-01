@@ -571,23 +571,7 @@ class ArkoWrapper(Generic[T]):
             print_func(len(end) * '\b')
         return self
 
-    def range(self: Wrapper, start: Optional[int] = 0) -> Wrapper:
-        def generator() -> Iterator[T]:
-            iter_values = iter(self._tee())
-            try:
-                for _ in range(start):
-                    next(iter_values)
-                index = start
-                for _ in range(self.max_operate_time):
-                    next(iter_values)
-                    yield index
-                    index += 1
-            except StopIteration:
-                ...
-
-        return self.__class__(generator())
-
-    def remove(self, target: Any) -> "ArkoWrapper":
+    def remove(self: Wrapper, target: Any, *, full: bool = False) -> Wrapper:
         def generator() -> Iterator[T]:
             iter_values = iter(self._tee())
             is_sequence = isinstance(target, Sequence)
@@ -596,17 +580,21 @@ class ArkoWrapper(Generic[T]):
                 for _ in range(self.max_operate_time):
                     value = next(iter_values)
                     if (
-                            (is_sequence and value in target)
-                            or
-                            (not removed and value == target)
+                            not removed
+                            and
+                            (
+                                    (is_sequence and value in target)
+                                    or
+                                    value == target
+                            )
                     ):
-                        continue
+                        removed = full
                     else:
                         yield value
             except StopIteration:
                 ...
 
-        return ArkoWrapper(generator())
+        return self.__class__(generator())
 
     def repeat(
             self: Wrapper, times: Optional[Union[int, float, str]] = None
