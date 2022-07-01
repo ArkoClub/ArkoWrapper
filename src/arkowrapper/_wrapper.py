@@ -433,8 +433,15 @@ class ArkoWrapper(Generic[T]):
         return self.__class__(filterfalse(func, self._tee()))
 
     def find(
-            self, target: Any, *, full: Optional[bool] = False
-    ) -> Iterator[int]:
+            self, func: Callable[[T], bool], *, full: bool = False
+    ) -> Iterator[T]:
+        for t in self._tee():
+            if func(t[1]):
+                yield t[1]
+                if not full:
+                    break
+
+    def find_target(self, target: Any, *, full: bool = False) -> Iterator[int]:
         for t in self.enumerate():
             if t[1] == target:
                 yield t[0]
