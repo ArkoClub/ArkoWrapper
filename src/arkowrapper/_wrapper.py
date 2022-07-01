@@ -633,6 +633,16 @@ class ArkoWrapper(Generic[T]):
     def slice(self: Wrapper, *args, **kwargs) -> Wrapper:
         return self.__class__(islice(self._tee(), *args, *kwargs.values()))
 
+    def _iter_integer(self, start: int = 0) -> Iterator[int]:
+        iter_values = iter(self._tee())
+        for _ in range(start):
+            next(iter_values)
+        index = start
+        for _ in range(self.max_operate_time):
+            next(iter_values)
+            yield index
+            index += 1
+
     def search(
             self,
             sub: Searchable[E], *,
@@ -641,7 +651,7 @@ class ArkoWrapper(Generic[T]):
         target = self.tee()
         sub: ArkoWrapper[E] = ArkoWrapper(sub)
         partial: list[int] = [0]
-        for i in sub.range(1):
+        for i in sub._iter_integer(1):
             j = partial[i - 1]
             while j > 0 and sub[j] != sub[i]:
                 j = partial[j - 1]
