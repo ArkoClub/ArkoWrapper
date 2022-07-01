@@ -25,7 +25,6 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Generator,
     Generic,
     Hashable,
     Iterable,
@@ -659,7 +658,7 @@ class ArkoWrapper(Generic[T]):
 
         j = 0
 
-        for i in target.range():
+        for i in target._iter_integer():
             while j > 0 and target[i] != sub[j]:
                 j = partial[j - 1]
             if func(target[i], sub[j]):
