@@ -435,8 +435,8 @@ class ArkoWrapper(Generic[T]):
             self, func: Callable[[T], bool], *, full: bool = False
     ) -> Iterator[T]:
         for t in self._tee():
-            if func(t[1]):
-                yield t[1]
+            if func(t):
+                yield t
                 if not full:
                     break
 
