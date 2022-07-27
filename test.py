@@ -40,7 +40,10 @@ class TestOperator:  # pragma: no cover
     def test(self):
         from sys import maxsize
         assert ArkoWrapper().__root__ == []
-        assert ArkoWrapper(v := randint(0, maxsize)).__root__ == [v]
+
+        v = randint(0, maxsize)
+        assert ArkoWrapper(v).__root__ == [v]
+
         with pytest.raises(ValueError):
             ArkoWrapper(max_operate_times=maxsize + 1)
         with pytest.raises(ValueError):
@@ -68,7 +71,8 @@ class TestOperator:  # pragma: no cover
         assert len(list(wrapper._max_gen())) == len(data)
 
     def test_index(self):
-        assert int(ArkoWrapper(range(value := randint(0, 100)))) == value
+        value = randint(0, 100)
+        assert int(ArkoWrapper(range(value))) == value
 
     def test_len(self):
         from itertools import tee
