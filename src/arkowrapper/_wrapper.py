@@ -43,8 +43,8 @@ from typing import (
 )
 
 from typing_extensions import (
-    Self,
     Protocol,
+    Self,
     SupportsIndex,
     runtime_checkable,
 )
@@ -55,6 +55,7 @@ T = TypeVar("T")
 E = TypeVar("E")
 R = TypeVar("R")
 default_max = sys.maxsize
+NOT_SET = object()
 
 
 @runtime_checkable
@@ -472,9 +473,34 @@ class ArkoWrapper(Generic[T]):
 
         return self.__class__(generator(self._tee(), depth))
 
-    def group(self, n: int, fill_value: Any = None) -> Self:
-        iter_values = [iter(self._tee())] * n
-        return self.__class__(zip_longest(*iter_values, fillvalue=fill_value))
+    def group(self, n: int, fill_value: Any = NOT_SET) -> Self:
+        if not n:
+            raise ValueError(f"\'n\' must be a positive integer, not \'{n}\'")
+
+        def generator() -> Iterator[Self]:
+            iter_value = iter(self._tee())
+            stopped = False
+            next_value = NOT_SET
+            while not stopped:
+                item = self.__class__()
+                for _ in range(n):
+                    try:
+                        if next_value is not NOT_SET:
+                            item.append(next_value)
+                        else:
+                            item.append(next(iter_value))
+                    except StopIteration:
+                        stopped = True
+                        if fill_value is not NOT_SET:
+                            item.append(fill_value)
+                    try:
+                        next_value = next(iter_value)
+                    except StopIteration:
+                        stopped = True
+                        next_value = NOT_SET
+                yield item
+
+        return self.__class__(generator())
 
     # noinspection SpellCheckingInspection
     @overload
