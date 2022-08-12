@@ -463,13 +463,20 @@ class ArkoWrapper(Generic[T]):
                 if not full:
                     break
 
-    def flat(self, depth: int = -1) -> Self:
-        def generator(iterator: Iterable, times: int) -> Iterator[T]:
-            for i in iterator:
-                if isinstance(i, Iterable) and not isinstance(i, str) and times:
-                    yield from generator(i, times - 1)
+    def flat(self, depth: int = NOT_SET, *, flat_str: bool = False) -> Self:
+        def generator(iterator: Iterable, times: int = NOT_SET):
+            for item in iterator:
+                if isinstance(item, str) and times:
+                    if flat_str and len(item) != 0:
+                        yield from item
+                    else:
+                        yield item
+                elif isinstance(item, Iterable) and times:
+                    yield from generator(
+                        item, (times - 1) if isinstance(times, int) else times
+                    )
                 else:
-                    yield i
+                    yield item
 
         return self.__class__(generator(self._tee(), depth))
 
@@ -700,6 +707,7 @@ class ArkoWrapper(Generic[T]):
 
         j = 0
 
+        # noinspection PyProtectedMember
         for i in target._iter_integer():
             while j > 0 and target[i] != sub[j]:
                 j = partial[j - 1]
