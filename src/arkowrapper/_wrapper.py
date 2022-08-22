@@ -381,6 +381,17 @@ class ArkoWrapper(Generic[T]):
     def cycle(self) -> Self:
         return self.__class__(cycle(self._tee()))
 
+    def delete(self, target: Union[Callable[[E], bool], E]) -> Self:
+        """从 ArkoWrapper 中删除指定对象。注：此方法会修改本身的 __root__"""
+        def generator() -> Iterator[E]:
+            is_callable = isinstance(target, Callable)
+            for e in iter(self.__root__):
+                if (is_callable and target(e)) or target == e:
+                    continue
+                yield e
+
+        return self.__class__(generator())
+
     def drop_while(self, func: Callable[[T], bool]) -> Self:
         return self.__class__(dropwhile(func, self._tee()))
 
