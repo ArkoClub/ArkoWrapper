@@ -4,6 +4,7 @@
 """
 import operator
 import sys
+import collections
 from itertools import (
     accumulate,
     chain,
@@ -68,12 +69,7 @@ class Searchable(Protocol[T]):
 
 
 class ArkoWrapper(Generic[T]):
-    """一个 Python 迭代器的包装器
-
-    Attributes:
-        iterable: 需要被 Wrap 的 Object。 可以是一个迭代器或者其它任何Object。
-        max_operate_times: Wrapper 操作次数的上限。用于限制无限的迭代器。
-    """
+    """一个 Python 迭代器的包装器"""
     __root__: Iterable[T]
     _max: int
 
@@ -84,6 +80,12 @@ class ArkoWrapper(Generic[T]):
             self, iterable: Optional[Union[Iterable[T], T]] = None, *,
             max_operate_times: Optional[int] = default_max
     ) -> NoReturn:
+        """初始化方法
+
+        Args:
+            iterable: 需要被 Wrap 的 Object。 可以是一个迭代器或者其它任何Object。
+            max_operate_times: Wrapper 操作次数的上限。用于限制无限的迭代器。
+        """
         if isinstance(iterable, Iterable):
             self.__root__ = iterable
         elif iterable is None:
@@ -105,10 +107,24 @@ class ArkoWrapper(Generic[T]):
 
     def _tee(self) -> Iterable[T]:
         """将已有迭代器分裂一次"""
-        result, self.__root__ = tee(self.__root__)
+        iter_values = iter(self.__root__)
+        deques = (collections.deque(), collections.deque())
+
+        def generator(deque) -> Iterator[T]:
+            while True:
+                if not deque:
+                    try:
+                        new_val = next(iter_values)
+                    except StopIteration:
+                        return
+                    for d in deques:
+                        d.append(new_val)
+                yield deque.popleft()
+
+        result, self.__root__ = generator(deques[0]), generator(deques[1])
         return result
 
-    def _max_gen(self) -> Iterator:
+    def _max_gen(self) -> Iterator[T]:
         """将自己的迭代器现在某个范围内"""
         iter_values = iter(self._tee())
         try:
@@ -383,6 +399,7 @@ class ArkoWrapper(Generic[T]):
 
     def delete(self, target: Union[Callable[[E], bool], E]) -> Self:
         """从 ArkoWrapper 中删除指定对象。注：此方法会修改本身的 __root__"""
+
         def generator() -> Iterator[E]:
             is_callable = isinstance(target, Callable)
             for e in iter(self.__root__):
@@ -532,7 +549,9 @@ class ArkoWrapper(Generic[T]):
             start: Callable[[T], bool],
             stop: Callable[[T], bool],
             group_type: Callable[[list], Iterable] = list,
-            retain: bool = False
+            retain: bool = False,
+            contain_head: bool = False,
+            contain_tail: bool = False
     ) -> Self:
         pass
 
