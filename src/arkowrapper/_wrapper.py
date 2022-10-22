@@ -2,9 +2,10 @@
 
 一个 Python 迭代器的包装器，使其具有与Rust中的其他方法类似的风格，以提高迭代器操作的一致性和代码的可读性。
 """
+import builtins
+import collections
 import operator
 import sys
-import collections
 from itertools import (
     accumulate,
     chain,
@@ -55,6 +56,7 @@ __all__ = ["ArkoWrapper"]
 T = TypeVar("T")
 E = TypeVar("E")
 R = TypeVar("R")
+Wrapper = TypeVar("Wrapper", bound="ArkoWrapper")
 default_max = sys.maxsize
 NOT_SET = object()
 
@@ -491,8 +493,12 @@ class ArkoWrapper(Generic[T]):
                 if not full:
                     break
 
-    def flat(self, depth: int = NOT_SET, *, flat_str: bool = False) -> Self:
-        def generator(iterator: Iterable, times: int = NOT_SET):
+    def flat(
+            self, depth: int = NOT_SET, *, flat_str: bool = False
+    ) -> "ArkoWrapper[Union[T, E]]":
+        def generator(
+                iterator: Iterable[E], times: int = NOT_SET
+        ) -> Iterator[Union[str, E, Iterator]]:
             for item in iterator:
                 if isinstance(item, str) and times:
                     if flat_str and len(item) != 0:
@@ -508,7 +514,7 @@ class ArkoWrapper(Generic[T]):
 
         return self.__class__(generator(self._tee(), depth))
 
-    def group(self, n: int, fill_value: Any = NOT_SET) -> Self:
+    def group(self, n: int, fill_value: Any = NOT_SET) -> "ArkoWrapper[Self]":
         if not n:
             raise ValueError(f"\'n\' must be a positive integer, not \'{n}\'")
 
@@ -539,7 +545,7 @@ class ArkoWrapper(Generic[T]):
 
     # noinspection SpellCheckingInspection
     @overload
-    def groupby(self, key: Callable[[T], R] = None) -> Self:
+    def groupby(self, key: Callable[[T], R] = None) -> "ArkoWrapper[Self]":
         pass
 
     # noinspection SpellCheckingInspection
@@ -551,12 +557,12 @@ class ArkoWrapper(Generic[T]):
             group_type: Callable[[list], Iterable] = list,
             retain: bool = False,
             contain_head: bool = False,
-            contain_tail: bool = False
-    ) -> Self:
+            contain_tail: bool = False,
+    ) -> "ArkoWrapper[Self]":
         pass
 
     # noinspection SpellCheckingInspection
-    def groupby(self, *args, **kwargs) -> Self:
+    def groupby(self, *args, **kwargs) -> "ArkoWrapper[Self]":
         if len(args) + len(kwargs) <= 1:
             return self.__class__(groupby(self._tee(), *args, **kwargs))
         else:
@@ -594,16 +600,18 @@ class ArkoWrapper(Generic[T]):
 
             return make_group(*args, **kwargs)
 
-    def join(self, sep: str = ', ') -> str:
+    def join(self, sep: E = ', ') -> "ArkoWrapper[Union[T, E]]":
+        """在每个元素之间加上 sep """
         iter_values = iter(self._tee())
-        result = ''
-        try:
+
+        def generator() -> Iterator[Union[T, E]]:
             for _ in range(self.max_operate_time):
-                value = next(iter_values)
-                result += f"{sep}{value}"
-        except StopIteration:
-            ...
-        return result
+                try:
+                    yield next(iter_values)
+                except StopIteration:
+                    break
+                yield sep
+        return self.__class__(generator())
 
     def map(
             self, func: Callable[[T], R], start: Optional[int] = 0
@@ -628,7 +636,7 @@ class ArkoWrapper(Generic[T]):
             self,
             length: Optional[int] = None, *,
             end: Optional[str] = ', ',
-            print_func: Optional[Callable[..., Any]] = print
+            print_func: Optional[Callable[..., Any]] = builtins.print
     ) -> Self:
         time = 0
         iter_values = iter(self._tee())
