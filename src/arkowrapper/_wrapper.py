@@ -605,14 +605,21 @@ class ArkoWrapper(Generic[T]):
         iter_values = iter(self._tee())
 
         def generator() -> Iterator[Union[T, E]]:
-            first = True
+            default = object()
+            value = default
+            next_value = default
             for _ in range(self.max_operate_time):
-                if not first:
-                    yield sep
                 try:
-                    yield next(iter_values)
-                    first = False
+                    if value is default:
+                        value = next(iter_values)
+                        next_value = next(iter_values)
+                    yield value
+                    yield sep
+                    value = next_value
+                    next_value = next(iter_values)
                 except StopIteration:
+                    if value is not default:
+                        yield value
                     break
 
         return self.__class__(generator())
