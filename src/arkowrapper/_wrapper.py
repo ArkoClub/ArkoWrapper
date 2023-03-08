@@ -243,10 +243,6 @@ class ArkoWrapper(Generic[T]):
 
     def __len__(self) -> int:
         """返回当前的迭代器的长度，如果无限的话，则回返回最大操作次数。"""
-        if isinstance(self.__root__, Hashable):
-            hash_value = hash(self.__root__)
-            if hash_value in self.__class__._len_cache:
-                return self.__class__._len_cache[hash_value]
         if isinstance(self.__root__, Sized):
             length = len(list(self._tee()))
         else:
@@ -255,8 +251,6 @@ class ArkoWrapper(Generic[T]):
                 length += 1
                 if length >= self._max:
                     return self._max
-        if isinstance(self.__root__, Hashable):
-            self.__class__._len_cache[hash(self.__root__)] = length
         return length
 
     def __matmul__(self, other: Any) -> T:
