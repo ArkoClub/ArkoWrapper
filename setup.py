@@ -19,7 +19,7 @@ with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='arko-wrapper',
     description="给你的Python迭代器加上魔法",
-    version='0.2.7',
+    version='0.2.8',
     long_description=long_description,
     long_description_content_type='text/markdown',
     author='Arko',
