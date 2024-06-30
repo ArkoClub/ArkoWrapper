@@ -51,6 +51,11 @@ from typing_extensions import (
     runtime_checkable,
 )
 
+try:
+    import more_itertools
+except ImportError:
+    more_itertools = None
+
 __all__ = ["ArkoWrapper"]
 
 T = TypeVar("T")
@@ -875,3 +880,28 @@ class ArkoWrapper(Generic[T]):
 
         def batched(self, n: int = 2) -> Self:
             return self.__class__(itertools.batched(self._tee(), n))
+
+    if more_itertools:
+
+        def chunked(self, n: Optional[int] = None, strict: bool = False) -> Self:
+            return self.__class__(more_itertools.chunked(self._tee(), n, strict))
+
+        def chunked_even(self, n: int) -> Self:
+            return self.__class__(more_itertools.chunked_even(self._tee(), n))
+
+        # noinspection SpellCheckingInspection
+        def ichunked(self, n: Optional[int] = None) -> Self:
+            return self.__class__(more_itertools.ichunked(self._tee(), n)).map(
+                self.__class__
+            )
+
+        def distribute(self, n: int) -> Self:
+            return self.__class__(more_itertools.distribute(n, self._tee())).map(
+                self.__class__
+            )
+
+        def divide(self, n: int) -> Self:
+            return self.__class__(more_itertools.divide(n, self._tee()))
+
+        def flatten(self) -> Self:
+            return self.__class__(more_itertools.flatten(self._tee()))
