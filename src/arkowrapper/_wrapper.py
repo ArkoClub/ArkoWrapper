@@ -2,22 +2,20 @@
 
 一个 Python 迭代器的包装器，使其具有与Rust中的其他方法类似的风格，以提高迭代器操作的一致性和代码的可读性。
 """
+
 import builtins
 import collections
+import itertools
 import operator
 import sys
 from itertools import (
-    accumulate,
     chain,
-    combinations,
-    combinations_with_replacement,
     compress,
     cycle,
     dropwhile,
     filterfalse,
     groupby,
     islice,
-    repeat,
     starmap,
     takewhile,
     tee,
@@ -48,6 +46,8 @@ from typing_extensions import (
     Protocol,
     Self,
     SupportsIndex,
+    SupportsInt,
+    Type,
     runtime_checkable,
 )
 
@@ -63,14 +63,14 @@ NOT_SET = object()
 
 @runtime_checkable
 class Searchable(Protocol[T]):
-    def __iter__(self) -> Iterable[T]:
-        ...
+    def __iter__(self) -> Iterable[T]:  # NOSONAR
+        pass
 
-    def __getitem__(self, item) -> T:
-        ...
+    def __getitem__(self, item) -> T:  # NOSONAR
+        pass
 
-    def __len__(self) -> int:
-        ...
+    def __len__(self) -> int:  # NOSONAR
+        pass
 
 
 class ArkoWrapper(Generic[T]):
@@ -148,12 +148,15 @@ class ArkoWrapper(Generic[T]):
             other(Any): 相加的实列。
 
         Returns:
-            ArkoWrapper: 返回两个实列组成的新的迭代器的ArkoWrapper
+            ArkoWrapper: 返回两个实列组成的新的迭代器的 ArkoWrapper
         """
 
         def generate() -> Iterator[Union[T, E]]:
             yield from self._tee()
-            if not isinstance(other, str) and isinstance(other, Iterable):
+            if not isinstance(other, str) and (
+                isinstance(other, Iterable)
+                and not (isinstance(other, str) and len(other) > 1)
+            ):
                 yield from other  # todo:复制生成器
             else:
                 yield other
@@ -165,12 +168,15 @@ class ArkoWrapper(Generic[T]):
 
         def generate() -> Iterator[Union[T, E]]:
             if not isinstance(other, str) and isinstance(other, Iterable):
-                yield from other  # todo:复制生成器
+                yield from other  # todo: 复制生成器
             else:
                 yield other
             yield from self._tee()
 
         return self.__class__(generate())
+
+    def __rsub__(self, other: Union[Iterable[T], T]) -> Self:
+        return self.remove(other, remove_all=False)
 
     def __eq__(self, other: Any) -> bool:
         """定义操作符(==)的行为。"""
@@ -197,7 +203,7 @@ class ArkoWrapper(Generic[T]):
         if isinstance(index, slice):
             if "__getitem__" in dir(self.__root__):
                 # noinspection PyUnresolvedReferences
-                return self.__root__[index]
+                return self.__root__[index]  # NOSONAR
             try:
                 return self.slice(start=index.start, stop=index.stop, step=index.step)
             except ValueError:
@@ -262,18 +268,46 @@ class ArkoWrapper(Generic[T]):
         """定义操作符(@)的行为。"""
         return self.__getitem__(other)
 
-    def __mul__(self, times: Union[int, float, str]) -> Self:
+    def __mul__(self, times: Union[SupportsIndex, SupportsInt, Iterable[E]]) -> Self:
         """实现乘法操作"""
-        if isinstance(times, SupportsIndex):
-            times = int(float(times))
+        if isinstance(times, (SupportsIndex, SupportsInt)):
+            times = int(times)
             if times <= 0:
-                raise ValueError(f"'times' cannot be negative: {times}")
-        try:
+                raise ValueError(f"'times' can only be positive: {times}")
             return self.__class__(
-                chain.from_iterable(repeat(tuple(self._tee()), int(times)))
+                chain.from_iterable(itertools.repeat(tuple(self._tee()), times))
             )
-        except Exception:
-            raise TypeError(f"Unsupported Type: {type(times)}.")
+        elif isinstance(times, Iterable):
+            return self.product(times)
+        raise TypeError(f"Unsupported Type: {type(times)}.")
+
+    def __truediv__(self, other: Any) -> Self:
+        """实现除法操作"""
+        if isinstance(other, int):
+            if other < 1:
+                raise ValueError("Dividend must be at least 1")
+
+            iterable = self.tee()
+
+            try:
+                iterable[:0]
+            except TypeError:
+                seq = tuple(iterable)
+            else:
+                seq = iterable
+
+            q, r = divmod(seq.length, other)
+
+            result = self.__class__()
+            stop = 0
+            for i in range(1, other + 1):
+                start = stop
+                stop += q + 1 if i <= r else q
+                result.append(self.__class__(iter(seq[start:stop])))
+
+            return result
+
+        return self.remove(other, remove_all=True)
 
     def __neg__(self) -> Self:
         """定义取负操作"""
@@ -326,14 +360,16 @@ class ArkoWrapper(Generic[T]):
             *,
             initial: Optional[int] = None,
         ) -> Self:
-            return self.__class__(accumulate(self._tee(), func, initial=initial))
+            return self.__class__(
+                itertools.accumulate(self._tee(), func, initial=initial)
+            )
 
     else:
 
         def accumulate(
             self, func: Optional[Callable[[T, T], R]] = operator.add
         ) -> Self:
-            return self.__class__(accumulate(self._tee(), func))
+            return self.__class__(itertools.accumulate(self._tee(), func))
 
     def all(self) -> bool:
         """如果所有元素均为真值（或root为空）则返回 True"""
@@ -355,7 +391,10 @@ class ArkoWrapper(Generic[T]):
         except StopIteration:
             return False
 
-    def append(self, obj: E) -> Self:
+    def add(self, other: Union[E, Iterable[E]]) -> Self:
+        return self.__add__(other)
+
+    def append(self, *obj: E) -> Self:
         """将对象附加到 ArkoWrapper 的末尾。注：此方法会修改本身的 __root__"""
 
         def clean() -> List[Union[E, T]]:
@@ -365,7 +404,8 @@ class ArkoWrapper(Generic[T]):
                 for _ in range(self._max):
                     temp.append(next(iter_values))
             except StopIteration:
-                temp.append(obj)
+                for item in obj:
+                    temp.append(item)
                 return temp
 
         result = self.__class__()
@@ -384,11 +424,11 @@ class ArkoWrapper(Generic[T]):
 
     def combinations(self, r: int = 2) -> Self:
         """返回由元素组成长度为 r 的子序列"""
-        return self.__class__(combinations(self._tee(), r))
+        return self.__class__(itertools.combinations(self._tee(), r))
 
     def combinations_with_replacement(self, r: int = 2) -> Self:
         """返回由元素组成的长度为 r 的子序列，允许每个元素可重复出现。"""
-        return self.__class__(combinations_with_replacement(self._tee(), r))
+        return self.__class__(itertools.combinations_with_replacement(self._tee(), r))
 
     def compress(self, selectors: Iterable) -> Self:
         """返回元素中经 selectors 真值测试为 True 的元素"""
@@ -617,7 +657,9 @@ class ArkoWrapper(Generic[T]):
 
         return self.__class__(generator())
 
-    def map(self, func: Callable[[T], R], start: Optional[int] = 0) -> "ArkoWrapper[R]":
+    def map(
+        self, func: Union[Callable[[T], R], Type[E]], start: Optional[int] = 0
+    ) -> "ArkoWrapper[R]":
         def generator() -> Iterator[T]:
             iter_values = iter(self._tee())
             for _ in range(start):
@@ -658,36 +700,54 @@ class ArkoWrapper(Generic[T]):
             print_func(len(end) * "\b")
         return self
 
-    def remove(self, target: Any, *, full: bool = False) -> Self:
+    def remove(
+        self, target: Union[Iterable[T], T], *, remove_all: bool = False
+    ) -> Self:
+        """
+        从容器中删除指定内容
+
+        Args:
+            target (Iterable[T] | T): 需要删除的内容
+            remove_all (bool): 是否删除全部
+
+        Returns:
+            ArkoWrapper
+        """
+
         def generator() -> Iterator[T]:
             iter_values = iter(self._tee())
-            is_sequence = isinstance(target, Sequence)
-            removed = False
+            is_sequence = isinstance(target, Sequence) and not (
+                isinstance(target, str) and len(target) > 1
+            )
+            removed_seq = []
             try:
                 for _ in range(self.max_operate_time):
                     value = next(iter_values)
-                    if not removed and (
-                        (is_sequence and value in target) or value == target
-                    ):
-                        removed = full
+                    eq = (is_sequence and value in target) or value == target
+
+                    if remove_all and eq:
+                        continue
+                    elif value not in removed_seq and eq:
+                        removed_seq.append(value)
                     else:
                         yield value
+
             except StopIteration:
-                ...
+                pass
 
         return self.__class__(generator())
 
     def repeat(self, times: Optional[Union[int, float, str]] = None) -> Self:
         if times is None:
             return self.__class__(
-                chain.from_iterable(repeat(tuple(self._tee()), self._max + 1))
+                chain.from_iterable(itertools.repeat(tuple(self._tee()), self._max + 1))
             )
         if any([isinstance(times, str) and times.isnumeric(), isinstance(times, int)]):
             time = int(times)
             if time <= 0:
                 raise ValueError(f"'times' cannot be negative: {times}")
             return self.__class__(
-                chain.from_iterable(repeat(tuple(self._tee()), time + 1))
+                chain.from_iterable(itertools.repeat(tuple(self._tee()), time + 1))
             )
         else:
             raise TypeError(f"Unsupported Type: {type(times)}.")
@@ -797,3 +857,21 @@ class ArkoWrapper(Generic[T]):
         return self.__class__(
             zip_longest(self.tee(), *ArkoWrapper(iterables).tee(), fillvalue=fill_value)
         )
+
+    def product(self, *iterables: Iterable[E], repeat: int = 1) -> Self:
+        return self.__class__(itertools.product(self._tee(), *iterables, repeat=repeat))
+
+    def permutations(self, iterable: Iterable[E], r: Optional[int] = None) -> Self:
+        # 长度r元组，所有可能的排列，无重复元素
+
+        return self.__class__(itertools.permutations(self._tee(), r=r))
+
+    if sys.version_info >= (3, 10):
+
+        def pairwise(self) -> Self:
+            return self.__class__(itertools.pairwise(self._tee()))
+
+    if sys.version_info >= (3, 12):
+
+        def batched(self, n: int = 2) -> Self:
+            return self.__class__(itertools.batched(self._tee(), n))
