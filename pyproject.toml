@@ -1,5 +1,5 @@
 [project]
-name = "ArkoWrapper"
+name = "arko-wrapper"
 version = "0.4.1"
 description = "给你的Python迭代器加上魔法"
 readme = "README.md"
