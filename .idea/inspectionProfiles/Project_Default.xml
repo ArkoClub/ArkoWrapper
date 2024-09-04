@@ -30,5 +30,6 @@
         </set>
       </option>
     </inspection_tool>
+    <inspection_tool class="PyUnreachableCodeInspection" enabled="true" level="TEXT ATTRIBUTES" enabled_by_default="true" editorAttributes="CONSIDERATION_ATTRIBUTES" />
   </profile>
 </component>

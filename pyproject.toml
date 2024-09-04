@@ -1,0 +1,51 @@
+[project]
+name = "ArkoWrapper"
+version = "0.4.0"
+description = "给你的Python迭代器加上魔法"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "typing-extensions>=4.12.2",
+]
+authors = [
+    { name = "Arko", email = "arko.space.cc@gmail.com" },
+]
+maintainers = [
+    { name = "Karako", email = "karakohear@gmail.com" }
+]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+
+[project.urls]
+Homepage = "https://github.com/ArkoClub/ArkoWrapper"
+Repository = "https://github.com/ArkoClub/ArkoWrapper.git"
+Issues = "https://github.com/ArkoClub/ArkoWrapper/issues"
+
+[project.optional-dependencies]
+more = [
+    "more-itertools",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "black[d]",
+    "pytest",
+    "pytest-rerunfailures",
+    "setuptools",
+]
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.build]
+includes = ["src/arko", "LICENSE"]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
