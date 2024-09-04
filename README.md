@@ -35,7 +35,7 @@ poetry add arko-wrapper
 将目标迭代器作物参数使用即可：
 
 ```python
-from arkowrapper import ArkoWrapper
+from arko.wrapper import ArkoWrapper
 
 wrapper = ArkoWrapper(range(100))
 ```
