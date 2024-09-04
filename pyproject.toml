@@ -1,6 +1,6 @@
 [project]
 name = "arko-wrapper"
-version = "0.4.1"
+version = "0.4.2"
 description = "给你的Python迭代器加上魔法"
 readme = "README.md"
 requires-python = ">=3.12"
