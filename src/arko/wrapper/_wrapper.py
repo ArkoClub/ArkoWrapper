@@ -78,6 +78,7 @@ class Searchable(Protocol[T]):
         pass
 
 
+# noinspection PyUnreachableCode
 class ArkoWrapper(Generic[T]):
     """一个 Python 迭代器的包装器"""
 
@@ -732,7 +733,8 @@ class ArkoWrapper(Generic[T]):
 
                     if remove_all and eq:
                         continue
-                    elif value not in removed_seq and eq:
+
+                    if value not in removed_seq and eq:
                         removed_seq.append(value)
                     else:
                         yield value
@@ -866,9 +868,8 @@ class ArkoWrapper(Generic[T]):
     def product(self, *iterables: Iterable[E], repeat: int = 1) -> Self:
         return self.__class__(itertools.product(self._tee(), *iterables, repeat=repeat))
 
-    def permutations(self, iterable: Iterable[E], r: Optional[int] = None) -> Self:
+    def permutations(self, r: Optional[int] = None) -> Self:
         # 长度r元组，所有可能的排列，无重复元素
-
         return self.__class__(itertools.permutations(self._tee(), r=r))
 
     if sys.version_info >= (3, 10):
@@ -881,27 +882,32 @@ class ArkoWrapper(Generic[T]):
         def batched(self, n: int = 2) -> Self:
             return self.__class__(itertools.batched(self._tee(), n))
 
-    if more_itertools:
-
+    if more_itertools is not None:
         def chunked(self, n: Optional[int] = None, strict: bool = False) -> Self:
+            # noinspection PyUnresolvedReferences
             return self.__class__(more_itertools.chunked(self._tee(), n, strict))
 
         def chunked_even(self, n: int) -> Self:
+            # noinspection PyUnresolvedReferences
             return self.__class__(more_itertools.chunked_even(self._tee(), n))
 
         # noinspection SpellCheckingInspection
         def ichunked(self, n: Optional[int] = None) -> Self:
+            # noinspection PyUnresolvedReferences
             return self.__class__(more_itertools.ichunked(self._tee(), n)).map(
                 self.__class__
             )
 
         def distribute(self, n: int) -> Self:
+            # noinspection PyUnresolvedReferences
             return self.__class__(more_itertools.distribute(n, self._tee())).map(
                 self.__class__
             )
 
         def divide(self, n: int) -> Self:
+            # noinspection PyUnresolvedReferences
             return self.__class__(more_itertools.divide(n, self._tee()))
 
         def flatten(self) -> Self:
+            # noinspection PyUnresolvedReferences
             return self.__class__(more_itertools.flatten(self._tee()))

@@ -3,7 +3,7 @@ from random import randint
 
 import pytest
 
-from arkowrapper import ArkoWrapper
+from arko.wrapper import ArkoWrapper
 
 try:
     # noinspection PyPackageRequirements
@@ -25,7 +25,7 @@ data_b = range(5, 10)
 wrapper = ArkoWrapper(data)
 
 
-@pytest.mark.skip  # pragma: no cover
+@pytest.mark.skip  # pragma: no cover # NOSONAR
 class TestWrapper(ArkoWrapper):  # pragma: no cover
     __test__ = False
 
@@ -104,7 +104,7 @@ class TestOperator:  # pragma: no cover
         assert wrapper + 11 != range(1, 11)
         assert wrapper != range(1, 11)
         list_a, list_b = tee(data)
-        assert ArkoWrapper(list_a) == list_a
+        assert ArkoWrapper(list_a) == list_b
 
     @pytest.mark.flaky(reruns=3)
     def test_copy(self):
@@ -150,7 +150,7 @@ class TestOperator:  # pragma: no cover
 
     def test_collect(self):
         assert wrapper.collect() == list(data)
-        assert wrapper >> tuple == tuple(data)
+        assert wrapper >> tuple() == tuple(data)
         assert wrapper >> tuple([0]) == tuple([0, *data])
         with pytest.raises(TypeError):
             # noinspection PyStatementEffect,PyTypeChecker
@@ -180,7 +180,7 @@ class TestOperator:  # pragma: no cover
                 return self.root
 
         new_wrapper = NewWrapper(wrapper)
-        new_wrapper.filter_false(lambda: True).filter(lambda: False)
+        new_wrapper.filter_false(lambda _: True).filter(lambda _: False)
 
     def test_map(self):
         assert wrapper.map(lambda x: x * 2, 0) == map(lambda x: x * 2, wrapper)
